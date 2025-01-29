@@ -1,5 +1,6 @@
 Bienvenue dans le repo du projet! 
-Pour cloner le projet et travailler localement:
+   - Pour cloner le projet et travailler localement:
+   
     1. copier l'URL du repo (via github)
     2. ouvrir un terminal ou command prompt
     3. naviguer jusqu'au folder ou vous voulez avoir les fichiers de code du 
@@ -11,9 +12,9 @@ Pour cloner le projet et travailler localement:
 
 source: https://www.youtube.com/watch?v=eLmpKKaQL54&t=151s
 
-Le github est maintenant connecté au jira ce qui veut dire que:
+Le github est maintenant connecté au jira ce qui veut dire que
    - lorsqu'une branche est prête à être merged, il faut référencer le code de 
-     l'issue jira pour que le merge soit reconnu par jira
+     l'issue jira pour que le merge soit reconnu par jira:
 
       1. trouver le key issue pour la tâche (issue) concernée (ex JRA-123)
       2. utiliser la clée dans le nom de la branche lors de la création
