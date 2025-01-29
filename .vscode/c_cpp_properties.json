@@ -8,27 +8,27 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/alexa/OneDrive/Documents/École/(2023-XXXX) UDS/Bac en génie robotique/S4 - Hiver 2025/Projet/Code/projetS4/src",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/cores/arduino",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/variants/mega",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/HID/src",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "C:/Users/Admin/Documents/USherbrooke/S4/projetS4/src",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/variants/mega",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/alexa/OneDrive/Documents/École/(2023-XXXX) UDS/Bac en génie robotique/S4 - Hiver 2025/Projet/Code/projetS4/src",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/cores/arduino",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/variants/mega",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/HID/src",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                    "C:/Users/alexa/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "C:/Users/Admin/Documents/USherbrooke/S4/projetS4/src",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "C:/Users/Admin/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     ""
                 ]
             },
@@ -43,7 +43,7 @@
             ],
             "cStandard": "gnu11",
             "cppStandard": "gnu++11",
-            "compilerPath": "C:/Users/alexa/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+            "compilerPath": "C:/Users/Admin/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
             "compilerArgs": [
                 "-mmcu=atmega2560",
                 ""

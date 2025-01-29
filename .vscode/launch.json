@@ -12,9 +12,9 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/alexa/OneDrive/Documents/École/(2023-XXXX) UDS/Bac en génie robotique/S4 - Hiver 2025/Projet/Code/projetS4/.pio/build/megaatmega2560/firmware.elf",
+            "executable": "C:/Users/Admin/Documents/USherbrooke/S4/projetS4/.pio/build/megaatmega2560/firmware.elf",
             "projectEnvName": "megaatmega2560",
-            "toolchainBinDir": "C:/Users/alexa/.platformio/packages/toolchain-atmelavr/bin",
+            "toolchainBinDir": "C:/Users/Admin/.platformio/packages/toolchain-atmelavr/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
@@ -25,18 +25,18 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/alexa/OneDrive/Documents/École/(2023-XXXX) UDS/Bac en génie robotique/S4 - Hiver 2025/Projet/Code/projetS4/.pio/build/megaatmega2560/firmware.elf",
+            "executable": "C:/Users/Admin/Documents/USherbrooke/S4/projetS4/.pio/build/megaatmega2560/firmware.elf",
             "projectEnvName": "megaatmega2560",
-            "toolchainBinDir": "C:/Users/alexa/.platformio/packages/toolchain-atmelavr/bin",
+            "toolchainBinDir": "C:/Users/Admin/.platformio/packages/toolchain-atmelavr/bin",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "C:/Users/alexa/OneDrive/Documents/École/(2023-XXXX) UDS/Bac en génie robotique/S4 - Hiver 2025/Projet/Code/projetS4/.pio/build/megaatmega2560/firmware.elf",
+            "executable": "C:/Users/Admin/Documents/USherbrooke/S4/projetS4/.pio/build/megaatmega2560/firmware.elf",
             "projectEnvName": "megaatmega2560",
-            "toolchainBinDir": "C:/Users/alexa/.platformio/packages/toolchain-atmelavr/bin",
+            "toolchainBinDir": "C:/Users/Admin/.platformio/packages/toolchain-atmelavr/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"
         }
