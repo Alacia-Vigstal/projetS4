@@ -1,6 +1,9 @@
 # Prerequisites
 *.d
 
+# Windows
+Thumbs.db
+
 # Compiled Object files
 *.slo
 *.lo
@@ -26,11 +29,32 @@
 *.a
 *.lib
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Virtual environment directories
+.env
+.venv
+env/
+venv/
+
+# Arduino build directories
+.arduino_build/
+.arduino_output/
+*.eep  # EEPROM file
+
+# PlatformIO
+.pio/
+.piolibdeps/
+.pioenvs/
+.platformio/
+
 # Executables
 *.exe
 *.out
 *.app
 
 # Ignore VS Code settings
-.vscode/settings.json
-.vscode/c_cpp_properties.json
+.vscode/
