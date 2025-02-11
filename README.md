@@ -12,15 +12,16 @@ Bienvenue dans le repo du projet!
 
 source: https://www.youtube.com/watch?v=eLmpKKaQL54&t=151s
 
-Le github est maintenant connecté au jira ce qui veut dire que
-   - lorsqu'une branche est prête à être merged, il faut référencer le code de 
-     l'issue jira pour que le merge soit reconnu par jira:
+Le github est maintenant connecté au jira!
 
-      1. trouver le key issue pour la tâche (issue) concernée (ex JRA-123)
-      2. utiliser la clée dans le nom de la branche lors de la création
-         (ex JRA-123-branchName)
-      3. utiliser la clée au début du commit message au moment de commit les 
-         changements dans la branche (ex JRA-123 résumé des changements)
-      4. au moment de créer une pull request dans github, utiliser la clée dans 
-         le titre de la pull request
-    
+   - Lorsqu'une branche est prête à être merged, il faut référencer le code de 
+     l'issue jira pour que le merge soit reconnu par jira:
+   
+    1. trouver le key issue pour la tâche (issue) concernée (ex JRA-123)
+    2. utiliser la clée dans le nom de la branche lors de la création
+       (ex JRA-123-branchName)
+    3. utiliser la clée au début du commit message au moment de commit les 
+       changements dans la branche (ex JRA-123 résumé des changements)
+    4. au moment de créer une pull request dans github, utiliser la clée dans
+       le titre de la pull request
+
