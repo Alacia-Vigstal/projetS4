@@ -1,3 +1,4 @@
+/*
 #include <Arduino.h>
 #include <AccelStepper.h>
 
@@ -13,8 +14,8 @@
 #define DIR_Y2  5
 #define STEP_ROTATION_OUTIL  18
 #define DIR_ROTATION_OUTIL   19
-#define STEP_Z 32
-#define DIR_Z 33
+#define STEP_Z  32
+#define DIR_Z   33
 
 #define X_MIN_PIN 34
 #define X_MAX_PIN 35
@@ -24,9 +25,9 @@
 #define Z_MAX_PIN 14
 #define PRESSURE_SENSOR_PIN 15
 
-#define X_MAX_LIMIT 450  // Limite maximale de déplacement en mm sur X
-#define Y_MAX_LIMIT 450  // Limite maximale de déplacement en mm sur Y
-#define Z_MAX_LIMIT 20   // Course maximale de l'axe Z en mm
+#define X_MAX_LIMIT  450  // Limite maximale de déplacement en mm sur X
+#define Y_MAX_LIMIT  450  // Limite maximale de déplacement en mm sur Y
+#define Z_MAX_LIMIT  20   // Course maximale de l'axe Z en mm
 #define PRESSURE_MIN 100 // Seuil minimal de pression
 #define PRESSURE_MAX 500
 #define PRESSURE_HARD_LIMIT 600 // Pression à ne jamais dépasser
@@ -67,6 +68,7 @@ void ajusterHauteurOutil() {
     moteurHauteurOutil.run();
 }
 
+
 // ======================= HOMING (Calibrage) =======================
 void homing() {
     Serial.println("Début du homing...");
@@ -104,6 +106,7 @@ void homing() {
 
     Serial.println("Homing terminé !");
 }
+
 
 // ======================= MOUVEMENT DES MOTEURS =======================
 void moveXYZ(float x, float y, float z) {
@@ -209,3 +212,4 @@ void loop() {
         }
     }
 }
+*/
