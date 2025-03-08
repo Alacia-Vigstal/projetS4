@@ -134,3 +134,4 @@ coverage/
 
 # Ignore Git merge conflict files
 *.orig
+.pio/build/project.checksum
