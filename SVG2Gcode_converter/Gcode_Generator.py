@@ -118,7 +118,7 @@ class SVG():
 
 # fonctions
 def linkPaths(path):
-
+blabla
 def handleIntersections(pathList):
 
 def path2Gcode(SVG, segment):
