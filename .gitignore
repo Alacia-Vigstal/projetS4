@@ -54,6 +54,7 @@ venv/
 
 # PlatformIO
 .pio/
+.piobuild/
 .piolibdeps/
 .pioenvs/
 .platformio/
