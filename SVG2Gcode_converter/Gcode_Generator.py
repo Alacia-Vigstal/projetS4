@@ -17,7 +17,7 @@ class line(object):
 
     probablement a utiliser pour reconstruire discretement les paths
     """
-    def __init__(self, x=None, y=None, z=None):
+    def __init__(self, x=None, y=None):
         self.x = x
         self.y = y
         #x, y sont les coordonees de la position de fin
