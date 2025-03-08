@@ -45,3 +45,16 @@ class pathResult(opResult):
     """
 
 # fonctions
+def makeOpDict():
+
+
+def followPath():
+
+
+def removeIsland():
+
+
+def createGcodeFile():
+
+
+def handlePath():
