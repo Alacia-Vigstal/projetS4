@@ -115,10 +115,31 @@ class SVG():
 
     enfin, on trouve un facteur de conversion convertX et convertY pour reporter les unitees en mm.
     """
+    viewboxLowerLeftOrigin = 0
+    SVGOrigin = 1
+
+    def __init__(self, SVG, origin = viewboxLowerLeftOrigin):
+        self.SVGFileName = SVG
+        self.SVGFile = svgpathtools.Document(self.SVGFileName)
+        self.GcodeOrigin = origin
+        print("Gcode origin: ", origin, file = sys.stderr)
+
+        self.SVGPaths = []
+
+        for path in self.SVGFile.SVGPaths():
+            for continuous_path in path.continuous_subpaths():
+                self.paths.append(continuous_path)
+        
+        self.SVGAttributes = self.SVGFile.root.attrib
+
+        val, units, scale = self._parse_height_width(self.SVGAttributes['width'])
+        units
+        scale
+
 
 # fonctions
 def linkPaths(path):
-blabla
+
 def handleIntersections(pathList):
 
 def path2Gcode(SVG, segment):
