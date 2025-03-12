@@ -132,10 +132,50 @@ class SVG():
         
         self.SVGAttributes = self.SVGFile.root.attrib
 
-        val, units, scale = self._parse_height_width(self.SVGAttributes['width'])
-        units
-        scale
+        """
+        viewport definition
+        """
+        val, units, scale = self._parse_height_width(self.SVGAttributes['height'])
+        self.viewportHeight = val
+        self.viewportUnitsY = units
+        self.scaleX = scale
 
+        val, units, scale = self._parse_height_width(self.SVGAttributes['width'])
+        self.viewportWidth = val
+        self.viewportUnitsX = units
+        self.scaleY = scale
+
+        print("SVG viewport: ", file = sys.stderr)
+        print("width: %.3f%s" % (self.viewportWidth, self.viewportUnitsX), file = sys.stderr)
+        print("height: %.3f%s" % (self.viewportHeight, self.viewportUnitsY), file = sys.stderr)
+
+        """
+        viewbox definition
+        """
+        if 'viewbox' in self.SVGAttributes:
+            print("svg viewBox:", self.svg_attributes['viewBox'], file=sys.stderr)
+
+            (xOrigin, yOrigin, width, height) = re.split(',|(?: +(?:, *)?)', self.svg_attributes['viewBox'])
+            self.viewBoxX = float(xOrigin)
+            self.viewBoxY = float(yOrigin)
+            self.viewBoxWidth = float(width)
+            self.viewBoxHeight = float(height)
+
+            self.xScale *= self.viewportWidth / self.viewBoxWidth
+            self.yScale *= self.viewportHeight / self.viewBoxHeight
+
+            print("viewBox_x:", self.viewBoxX, file=sys.stderr)
+            print("viewBox_y:", self.viewBoxY, file=sys.stderr)
+            print("viewBox_width:", self.viewBoxWidth, file=sys.stderr)
+            print("viewBox_height:", self.viewBoxHeight, file=sys.stderr)
+            print("x_scale:", self.xScale, file=sys.stderr)
+            print("y_scale:", self.yScale, file=sys.stderr)
+
+        else:
+            self.viewBoxX = 0.0
+            self.viewBoxY = 0.0
+            self.viewBoxWidth = self.viewportWidth
+            self.viewBoxHeight = self.viewportHeight
 
 # fonctions
 def linkPaths(path):
