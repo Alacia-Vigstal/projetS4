@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'svgpat
 import svgpathtools
 
 # classes
-class line(object):
+class line:
     """
     une ligne droite, represente un deplacement g1 en gcode vers le point specifie
     """
@@ -37,7 +37,7 @@ class line(object):
         lineContent += ")"
         return lineContent
 
-class arc(object):
+class arc:
     """
     un arc de cercle, represente un deplacement g2 ou g3 en gcode vers le point specifie
 
@@ -98,7 +98,7 @@ class arcCCW(arc):
     enfant de arc specifiquement pour des arcs de cercle anti-horaires (g3)
     """
 
-class SVG():
+class SVG:
     """
     set l'origine et convertit les unitees du svg vers des mm
 
@@ -150,10 +150,10 @@ class SVG():
         """
         viewbox definition
         """
-        if 'viewbox' in self.SVGAttributes:
-            print("svg viewBox:", self.svg_attributes['viewBox'], file=sys.stderr)
+        if 'viewBox' in self.SVGAttributes:
+            print("svg viewBox:", self.SVGAttributes['viewBox'], file=sys.stderr)
 
-            (xOrigin, yOrigin, width, height) = re.split(',|(?: +(?:, *)?)', self.svg_attributes['viewBox'])
+            (xOrigin, yOrigin, width, height) = re.split(',|(?: +(?:, *)?)', self.SVGAttributes['viewBox'])
             self.viewBoxX = float(xOrigin)
             self.viewBoxY = float(yOrigin)
             self.viewBoxWidth = float(width)
@@ -220,7 +220,7 @@ class SVG():
             out = x * self.x_scale
 
         elif self.gcode_origin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
-            out = (x - self.viewBox_x) * self.x_scale
+            out = (x - self.viewBoxX) * self.x_scale
 
         return out
 
@@ -233,7 +233,7 @@ class SVG():
             out = -y * self.y_scale
 
         elif self.gcode_origin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
-            out = (self.viewBox_height - (y - self.viewBox_y)) * self.y_scale
+            out = (self.viewBoxHeight - (y - self.viewBoxY)) * self.y_scale
 
         return out
 
@@ -435,12 +435,12 @@ def pathSegment2Gcode(SVG, segment):
         # Le segment n'es ni une ligne, ni un arc de cercle 
         # c'est donc arc elliptique ou une courbe de bezier
         # on utilise une approximation linéaire (ajuster le nombre de points au besoin)
-        steps = 1000
+        steps = 500
 
         for k in range(steps+1):
             t = k / float(steps)
             end = segment.point(t)
-            (end_x, end_y) = SVG.xy_to_mm(end)
+            (end_x, end_y) = SVG.xy_mm(end)
             g1(x = end_x, y = end_y)
 
 # Possibilité d'ajouter les paramètres leadIn = True, leadOut = True pour fine tune les débuts et fins de parcours
@@ -546,7 +546,6 @@ def init():
     print("G17          (plan xy)")
     print("G90          (position absolue)")
     print("G91.1        (le centre des arcs est relatif à la position de départ des arcs)")
-    cutter_comp_off()
     print("G54          (système de coordonnées de travail)")
     print("G94          (feed (unités/minute))")
     print()
@@ -811,70 +810,6 @@ def g3(x=None, y=None, z=None, i=None, j=None, p=None):
         print(" P%s" % coord_to_str(p), end='')
 
     print()
-
-#
-# Cutter compensation handling.
-#
-
-def cutter_comp_off():
-    print("G40          (cutter comp off)")
-
-def cancel_cutter_comp():
-    print("; gcoder: calling program used obsolete cancel_cutter_comp() function, use cutter_comp_off() instead")
-    cutter_comp_off()
-
-def g40():
-    print("; gcoder: calling program used obsolete g40() function, use cutter_comp_off() instead")
-    cutter_comp_off()
-
-
-def cutter_comp_left(**kwargs):
-
-    """Enable cutter diameter compensation on the left side of the
-    programmed path.
-
-    When called with no argument, uses the diameter of the currently
-    loaded tool (from the tool table).
-
-    When called with the `diameter` argument, uses the specified diameter.
-
-    When called with the `tool` argument (and without the `diameter`
-    argument), uses the diameter of the specified tool number (from the
-    tool table)."""
-
-    if 'diameter' in kwargs:
-        print("G41.1 D%.4f   (cutter comp left, diameter mode)" % kwargs['diameter'])
-    elif 'tool' in kwargs:
-        print("G41 D%d   (cutter comp left, tool-number mode)" % kwargs['tool'])
-    else:
-        print("G41   (cutter comp left, current tool)")
-
-
-def cutter_comp_right(**kwargs):
-
-    """Enable cutter diameter compensation on the right side of the
-    programmed path.
-
-    When called with no argument, uses the diameter of the currently
-    loaded tool (from the tool table).
-
-    When called with the `diameter` argument, uses the specified diameter.
-
-    When called with the `tool` argument (and without the `diameter`
-    argument), uses the diameter of the specified tool number (from the
-    tool table)."""
-
-    if 'diameter' in kwargs:
-        print("G42.1 D%.4f   (cutter comp right, diameter mode)" % kwargs['diameter'])
-    elif 'tool' in kwargs:
-        print("G42 D%d   (cutter comp right, tool-number mode)" % kwargs['tool'])
-    else:
-        print("G42   (cutter comp right, current tool)")
-
-def g42_1(comp_diameter):
-    print("; gcoder: calling program used obsolete g42_1() function, use cutter_comp_right() instead")
-    cutter_comp_right(diameter=comp_diameter)
-
 
 def g81(retract, x=None, y=None, z=None):
     global current_x
