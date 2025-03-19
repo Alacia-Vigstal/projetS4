@@ -609,8 +609,8 @@ def imperial():
 def metric():
     print("G21")
 
-def setFeedRate(feed_rate_units_per_minute):
-    print("F %.4f" % feed_rate_units_per_minute)
+def setFeedRate(feedRate):
+    print("F %.4f" % feedRate)
 
 def speed(spindle_rpm):
     print("S %d" % spindle_rpm)
@@ -837,14 +837,18 @@ def g83(retract, delta, x=None, y=None, z=None):
     global current_z
 
     print("G83", end='')
+
     if x is not None:
         current_x = x
         print(" X%s" % coord_to_str(x), end='')
+
     if y is not None:
         current_y = y
         print(" Y%s" % coord_to_str(y), end='')
+
     if z is not None:
         print(" Z%s" % coord_to_str(z), end='')
+
     print(" R%s" % coord_to_str(retract), end='')
     print(" Q%s" % coord_to_str(delta), end='')
     print()
