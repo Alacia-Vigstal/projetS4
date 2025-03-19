@@ -445,18 +445,476 @@ def pathSegment2Gcode(SVG, segment):
 
 # Possibilité d'ajouter les paramètres leadIn = True, leadOut = True pour fine tune les débuts et fins de parcours
 # Discuter de la nécessité d'ajouter un paramètre pour le feed
-def path2Gcode(SVG, path, zControl):
+def path2Gcode(SVG, path, zRapid = 10.0, zCutDepth = 0.0, feed = None, plungeFeed = None):
     """
-    Output le Gcode pour un path donné
-
+    Output le Gcode pour les paths d'un SVG donné.
+    Le Gcode est généré pour un cutter (pas de spindle) avec retrait entre les coupes pour les changements de direction
+    
     arguments:
     - SVG: l'objet SVG
-    - path: le path à convertir
-    - zControl: paramètre bool pour le retrait ou la descente de l'outil dans l'axe Z (True = low, False = high)
-
-    L'idée est d'indiquer par zControl si l'outil doit être retiré ou descendu dans l'axe Z
-    puis de se rendre au point de début de découpe avant de commencer le parcours
+    - path: liste des paths à convertir
+    - zRapid: paramètre pour la hauteur de l'outil lors de déplacements rapides
+    - zCutDepth: paramètre pour la hauteur de l'outil lors de la coupe
+    - feed: paramètre pour la vitesse de coupe horizontale
+    - plungeFeed: paramètre pour la vitesse de descente verticale
     """
+    if not path:
+        raise ValueError("Path is empty; nothing to cut.")
+
+    # tolérance pour déterminer si besoin de retrait lors de changements de direction
+    ANGLE_TOLERANCE = 1.0
+
+    def unitDirectionVector(segment):
+        xStart, yStart = SVG.xy_mm(segment.start)
+        xEnd, yEnd = SVG.xy_mm(segment.end)
+        dx = xEnd - xStart
+        dy = yEnd - yStart
+        length = math.hypot(dx, dy)
+
+        if length < 1e-9:
+            return (0.0, 0.0)
+        
+        return (dx / length, dy / length)
+
+    def angleBetween(vec1, vec2):
+        dot = max(-1.0, min(1.0, vec1[0] * vec2[0] + vec1[1] * vec2[1]))
+        return math.degrees(math.acos(dot))
+
+    g0(z = zRapid)
+
+    start_x, start_y = SVG.xy_mm(path[0].start)
+    g0(x = start_x, y = start_y)
+
+    comment("Begin single-pass cutting with auto-retraction on direction changes")
+
+    if plungeFeed:
+        setFeedRate(plungeFeed)
+
+    elif feed:
+        setFeedRate(feed)
+
+    g1(z = zCutDepth)
+
+    if feed:
+        setFeedRate(feed)
+
+    prevDirection = unitDirectionVector(path[0])
+    pathSegment2Gcode(SVG, path[0], z = zCutDepth)
+
+    for i in range(1, len(path)):
+        currentSegment = path[i]
+        currentDirection = unitDirectionVector(currentSegment)
+
+        angleDeg = angleBetween(prevDirection, currentDirection)
+
+        if not (abs(angleDeg - 0)   <= ANGLE_TOLERANCE or abs(angleDeg - 180) <= ANGLE_TOLERANCE):
+            g1(z = zRapid)
+            seg_x, seg_y = SVG.xy_mm(currentSegment.start)
+            g0(x = seg_x, y = seg_y)
+
+            if plungeFeed:
+                setFeedRate(plungeFeed)
+
+            elif feed:
+                setFeedRate(feed)
+
+            g1(z = zCutDepth)
+
+            if feed:
+                setFeedRate(feed)
+
+        pathSegment2Gcode(SVG, currentSegment, z = zCutDepth)
+        prev_direction = currentDirection
+
+    comment("End of cut - no lead-out or spindle logic needed")
+
+# Paramètres pour track la position de l'outil
+currentX = None
+currentY = None
+currentA = None
+currentB = None
+currentC = None
+currentU = None
+currentV = None
+currentW = None
+currentFeed = None
+
+def init():
+    print()
+    print("; init")
+    print("G20          (pouces)")
+    print("G17          (plan xy)")
+    print("G90          (position absolue)")
+    print("G91.1        (le centre des arcs est relatif à la position de départ des arcs)")
+    cutter_comp_off()
+    print("G54          (système de coordonnées de travail)")
+    print("G94          (feed (unités/minute))")
+    print()
+
+
+def comment(msg):
+    if msg:
+        print(";", msg)
+
+    else:
+        print()
+
+
+def absolute():
+    print("G90")
+
+def absolute_arc_centers():
+    print("G90.1")
+
+def relative_arc_centers():
+    print("G91.1")
+
+def path_blend(tolerance=None):
+    print("G64 P%.4f (enable path blending with tolerance)" % tolerance)
+
+
+def quill_up():
+    absolute()
+    cutter_comp_off()
+    print("G53 G0 Z0")
+    current_z = None
+    spindle_off()
+
+
+def presentation_position():
+    imperial()
+    quill_up()
+
+    # rapid to presentation position
+    # table centered in X, all the way forward towards the user
+    print("G53 G0 X9 Y12")
+    current_x = None
+    current_y = None
+
+
+def m2():
+    print()
+    print("M2")
+
+
+def done():
+    print()
+    print("; done")
+    presentation_position()
+    print("M2")
+
+
+def imperial():
+    print("G20")
+
+def metric():
+    print("G21")
+
+def setFeedRate(feed_rate_units_per_minute):
+    print("F %.4f" % feed_rate_units_per_minute)
+
+def speed(spindle_rpm):
+    print("S %d" % spindle_rpm)
+
+def coord_to_str(val=None):
+    if val == None:
+        return ""
+    
+    if okToRound(val, 0.0):
+        val = 0.000
+
+    return "%.4f" % val
+
+
+# FIXME: g0(path) should be merged or replaced by z_path() somehow
+def g0(path=None, x=None, y=None, z=None, a=None, b=None, c=None, u=None, v=None, w=None):
+    global current_x
+    global current_y
+    global current_z
+    global current_a
+    global current_b
+    global current_c
+    global current_u
+    global current_v
+    global current_w
+
+    if path is not None:
+        print()
+        print("; g0 path")
+        for waypoint in path:
+            g0(**waypoint)
+        print()
+
+    else:
+        print("G0", end='')
+        if x is not None:
+            current_x = x
+            print(" X%s" % coord_to_str(x), end='')
+
+        if y is not None:
+            current_y = y
+            print(" Y%s" % coord_to_str(y), end='')
+
+        if z is not None:
+            current_z = z
+            print(" Z%s" % coord_to_str(z), end='')
+
+        if a is not None:
+            current_a = a
+            print(" A%s" % coord_to_str(a), end='')
+
+        if b is not None:
+            current_b = b
+            print(" B%s" % coord_to_str(b), end='')
+
+        if c is not None:
+            current_c = c
+            print(" C%s" % coord_to_str(c), end='')
+
+        if u is not None:
+            current_u = u
+            print(" U%s" % coord_to_str(u), end='')
+
+        if v is not None:
+            current_v = v
+            print(" V%s" % coord_to_str(v), end='')
+
+        if w is not None:
+            current_w = w
+            print(" W%s" % coord_to_str(w), end='')
+
+        print()
+
+
+def g1(path=None, x=None, y=None, z=None, a=None, b=None, c=None, u=None, v=None, w=None):
+    global current_x
+    global current_y
+    global current_z
+    global current_a
+    global current_b
+    global current_c
+    global current_u
+    global current_v
+    global current_w
+
+    if path is not None:
+        print()
+        print("; g1 path")
+        for waypoint in path:
+            g1(**waypoint)
+        print()
+
+    else:
+        print("G1", end='')
+        if x is not None:
+            current_x = x
+            print(" X%s" % coord_to_str(x), end='')
+
+        if y is not None:
+            current_y = y
+            print(" Y%s" % coord_to_str(y), end='')
+
+        if z is not None:
+            current_z = z
+            print(" Z%s" % coord_to_str(z), end='')
+
+        if a is not None:
+            current_a = a
+            print(" A%s" % coord_to_str(a), end='')
+
+        if b is not None:
+            current_b = b
+            print(" B%s" % coord_to_str(b), end='')
+
+        if c is not None:
+            current_c = c
+            print(" C%s" % coord_to_str(c), end='')
+
+        if u is not None:
+            current_u = u
+            print(" U%s" % coord_to_str(u), end='')
+
+        if v is not None:
+            current_v = v
+            print(" V%s" % coord_to_str(v), end='')
+
+        if w is not None:
+            current_w = w
+            print(" W%s" % coord_to_str(w), end='')
+
+        print()
+
+
+def g2(x=None, y=None, z=None, i=None, j=None, p=None):
+    global current_x
+    global current_y
+    global current_z
+
+    if i is None and j is None:
+        raise TypeError("gcoder.g2() without i or j")
+    
+    print("G2", end='')
+
+    if x is not None:
+        current_x = x
+        print(" X%s" % coord_to_str(x), end='')
+
+    if y is not None:
+        current_y = y
+        print(" Y%s" % coord_to_str(y), end='')
+
+    if z is not None:
+        current_z = z
+        print(" Z%s" % coord_to_str(z), end='')
+
+    if i is not None: 
+        print(" I%s" % coord_to_str(i), end='')
+
+    if j is not None: 
+        print(" J%s" % coord_to_str(j), end='')
+
+    if p is not None: 
+        print(" P%s" % coord_to_str(p), end='')
+
+    print()
+
+
+def g3(x=None, y=None, z=None, i=None, j=None, p=None):
+    global current_x
+    global current_y
+    global current_z
+
+    if i is None and j is None:
+        raise TypeError("gcoder.g3() without i or j")
+    
+    print("G3", end='')
+
+    if x is not None:
+        current_x = x
+        print(" X%s" % coord_to_str(x), end='')
+
+    if y is not None:
+        current_y = y
+        print(" Y%s" % coord_to_str(y), end='')
+
+    if z is not None:
+        current_z = z
+        print(" Z%s" % coord_to_str(z), end='')
+
+    if i is not None: 
+        print(" I%s" % coord_to_str(i), end='')
+
+    if j is not None: 
+        print(" J%s" % coord_to_str(j), end='')
+
+    if p is not None: 
+        print(" P%s" % coord_to_str(p), end='')
+
+    print()
+
+#
+# Cutter compensation handling.
+#
+
+def cutter_comp_off():
+    print("G40          (cutter comp off)")
+
+def cancel_cutter_comp():
+    print("; gcoder: calling program used obsolete cancel_cutter_comp() function, use cutter_comp_off() instead")
+    cutter_comp_off()
+
+def g40():
+    print("; gcoder: calling program used obsolete g40() function, use cutter_comp_off() instead")
+    cutter_comp_off()
+
+
+def cutter_comp_left(**kwargs):
+
+    """Enable cutter diameter compensation on the left side of the
+    programmed path.
+
+    When called with no argument, uses the diameter of the currently
+    loaded tool (from the tool table).
+
+    When called with the `diameter` argument, uses the specified diameter.
+
+    When called with the `tool` argument (and without the `diameter`
+    argument), uses the diameter of the specified tool number (from the
+    tool table)."""
+
+    if 'diameter' in kwargs:
+        print("G41.1 D%.4f   (cutter comp left, diameter mode)" % kwargs['diameter'])
+    elif 'tool' in kwargs:
+        print("G41 D%d   (cutter comp left, tool-number mode)" % kwargs['tool'])
+    else:
+        print("G41   (cutter comp left, current tool)")
+
+
+def cutter_comp_right(**kwargs):
+
+    """Enable cutter diameter compensation on the right side of the
+    programmed path.
+
+    When called with no argument, uses the diameter of the currently
+    loaded tool (from the tool table).
+
+    When called with the `diameter` argument, uses the specified diameter.
+
+    When called with the `tool` argument (and without the `diameter`
+    argument), uses the diameter of the specified tool number (from the
+    tool table)."""
+
+    if 'diameter' in kwargs:
+        print("G42.1 D%.4f   (cutter comp right, diameter mode)" % kwargs['diameter'])
+    elif 'tool' in kwargs:
+        print("G42 D%d   (cutter comp right, tool-number mode)" % kwargs['tool'])
+    else:
+        print("G42   (cutter comp right, current tool)")
+
+def g42_1(comp_diameter):
+    print("; gcoder: calling program used obsolete g42_1() function, use cutter_comp_right() instead")
+    cutter_comp_right(diameter=comp_diameter)
+
+
+def g81(retract, x=None, y=None, z=None):
+    global current_x
+    global current_y
+    global current_z
+
+    print("G81", end='')
+    if x is not None:
+        current_x = x
+        print(" X%s" % coord_to_str(x), end='')
+    if y is not None:
+        current_y = y
+        print(" Y%s" % coord_to_str(y), end='')
+    if z is not None:
+        print(" Z%s" % coord_to_str(z), end='')
+    print(" R%s" % coord_to_str(retract), end='')
+    print()
+    # FIXME: keep track of retract mode, set Z correctly here
+    current_z = None
+
+
+def g83(retract, delta, x=None, y=None, z=None):
+    global current_x
+    global current_y
+    global current_z
+
+    print("G83", end='')
+    if x is not None:
+        current_x = x
+        print(" X%s" % coord_to_str(x), end='')
+    if y is not None:
+        current_y = y
+        print(" Y%s" % coord_to_str(y), end='')
+    if z is not None:
+        print(" Z%s" % coord_to_str(z), end='')
+    print(" R%s" % coord_to_str(retract), end='')
+    print(" Q%s" % coord_to_str(delta), end='')
+    print()
+    # FIXME: keep track of retract mode, set Z correctly here
+    current_z = None
 
 def okToRound(a, b):
     """
