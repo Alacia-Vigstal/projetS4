@@ -3,6 +3,13 @@
 
 # Windows
 Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# Linux
+*~
 
 # Compiled Object files
 *.slo
@@ -47,14 +54,84 @@ venv/
 
 # PlatformIO
 .pio/
-.piolibdeps/
+.pio/build/
+.pio/libdeps/
 .pioenvs/
 .platformio/
+
+# CMake and build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+build/
+dist/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Generated documentation
+docs/_build/
+
+# Backup files
+*.bak
+*.old
+
+# Ignore checksum and auto-generated metadata
+project.checksum
+*.checksum
+
+# Ignore dependency managers
+node_modules/
+package-lock.json
+yarn.lock
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Executables
 *.exe
 *.out
 *.app
+*.bin
 
-# Ignore VS Code settings
-.vscode/
+# Ignore test output
+test-results/
+coverage/
+*.gcda
+*.gcno
+*.gcov
+*.lcov
+
+# Ignore database and machine-specific config
+*.db
+*.sqlite
+*.sqlite3
+*.env.local
+.envrc
+.env*
+
+# Ignore JetBrains IDEs (CLion, PyCharm, WebStorm, etc.)
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Ignore debugging and profiling files
+*.prof
+*.cache
+*.pid
+*.seed
+*.stackdump
+
+# Ignore Git merge conflict files
+*.orig
+.pio/build/project.checksum
