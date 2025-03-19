@@ -26,21 +26,21 @@ Le github est maintenant connecté au jira!
        le titre de la pull request
 
 
-Tips and tricks pour la gestion de GitHub 
-   - quand 2 personnes travaillent sur le même fichier de code:
+Tips and tricks pour la gestion de GitHub.
+   - Quand 2 personnes travaillent sur le même fichier de code:
 
    1. chaque personne doit créer sa propre branche avant de commencer.
    2. ouvrir un terminal
    3. cd jusqu'à l'emplacement du folder de projetS4
    4. git branch (devrait montrer uniquement main)
-         si pas uniquement main: 
-         git checkout main
-         git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
+      #si pas uniquement main: 
+      #git checkout main
+      #git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
    5. git pull origin main
    6. ouvrir vscode
    7. créer une branche
 
-   - chaque personne fait ses affaires, la première personne qui termine peut faire comme d'habitude. Elle doit avertir l'autre!
+   - La première personne qui termine peut faire comme d'habitude. Elle doit aussi avertir l'autre:
    
    1. dans vscode stage les changements (le symbole +)
    2. dans vscode écrire un commit message puis commit (la checkmark)
@@ -51,33 +51,33 @@ Tips and tricks pour la gestion de GitHub
    7. git checkout main
    8. git pull origin main
    9. git branch
-         si pas uniquement main: 
-         git checkout main
-         git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
+      #si pas uniquement main: 
+      #git checkout main
+      #git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
 
-   - la deuxième personne qui finit doit suivre les étapes suivantes
+   - La deuxième personne qui finit doit suivre les étapes suivantes:
 
    1. ouvrir un terminal
    2. cd jusqu'au folder projetS4
    3. git status
-         si il y a des fichiers pas commit, il faut les commit
-         git add .
-         git commit -m 'ton commit message'
+      #si il y a des fichiers pas commit, il faut les commit
+      #git add .
+      #git commit -m 'ton commit message'
    4. git fetch origin
    5. git checkout main
    6. git pull origin main
    7. git checkout nom-de-la-branche-de-la-deuxième-personne
    8. git merge main
-         il se peut qu'il y aie des conflits, il faut les résoudre manuellement
-         un conflit apparait dans le code comme suit:
-         <<<<<<< HEAD
-         [Code de la branche principale]
-         =======
-         [Code de la branche de la deuxième personne]
-         >>>>>>> nom-de-la-branche-de-la-deuxième-personne
-         il faut choisir manuellement quoi conserver ou non dans le code des deux branches.
-         un fois que c'est fait, supprimer <<<<<<< HEAD, =======, >>>>>>> nom-de-la-branche-de-la-deuxième-personne
-         vérifier pour des erreures et que toutes les modifications sont la
+      #il se peut qu'il y aie des conflits, il faut les résoudre manuellement
+      #un conflit apparait dans le code comme suit:
+      #<<<<<<< HEAD
+      #[Code de la branche principale]
+      #=======
+      #[Code de la branche de la deuxième personne]
+      #>>>>>>> nom-de-la-branche-de-la-deuxième-personne
+      #il faut choisir manuellement quoi conserver ou non dans le code des deux branches.
+      #un fois que c'est fait, supprimer <<<<<<< HEAD, =======, >>>>>>> nom-de-la-branche-de-la-deuxième-personne
+      #vérifier pour des erreures et que toutes les modifications sont la
    9. git add .
    10. git commit -m 'conflit résolu'
    11. git push origin nom-de-la-branche-de-la-deuxième-personne
