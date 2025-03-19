@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'svgpat
 import svgpathtools
 
 # classes
-class line(object):
+class line:
     """
     une ligne droite, represente un deplacement g1 en gcode vers le point specifie
     """
@@ -37,7 +37,7 @@ class line(object):
         lineContent += ")"
         return lineContent
 
-class arc(object):
+class arc:
     """
     un arc de cercle, represente un deplacement g2 ou g3 en gcode vers le point specifie
 
@@ -98,7 +98,7 @@ class arcCCW(arc):
     enfant de arc specifiquement pour des arcs de cercle anti-horaires (g3)
     """
 
-class SVG():
+class SVG:
     """
     set l'origine et convertit les unitees du svg vers des mm
 
@@ -150,10 +150,10 @@ class SVG():
         """
         viewbox definition
         """
-        if 'viewbox' in self.SVGAttributes:
-            print("svg viewBox:", self.svg_attributes['viewBox'], file=sys.stderr)
+        if 'viewBox' in self.SVGAttributes:
+            print("svg viewBox:", self.SVGAttributes['viewBox'], file=sys.stderr)
 
-            (xOrigin, yOrigin, width, height) = re.split(',|(?: +(?:, *)?)', self.svg_attributes['viewBox'])
+            (xOrigin, yOrigin, width, height) = re.split(',|(?: +(?:, *)?)', self.SVGAttributes['viewBox'])
             self.viewBoxX = float(xOrigin)
             self.viewBoxY = float(yOrigin)
             self.viewBoxWidth = float(width)
@@ -220,7 +220,7 @@ class SVG():
             out = x * self.x_scale
 
         elif self.gcode_origin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
-            out = (x - self.viewBox_x) * self.x_scale
+            out = (x - self.viewBoxX) * self.x_scale
 
         return out
 
@@ -233,7 +233,7 @@ class SVG():
             out = -y * self.y_scale
 
         elif self.gcode_origin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
-            out = (self.viewBox_height - (y - self.viewBox_y)) * self.y_scale
+            out = (self.viewBoxHeight - (y - self.viewBoxY)) * self.y_scale
 
         return out
 
@@ -435,12 +435,12 @@ def pathSegment2Gcode(SVG, segment):
         # Le segment n'es ni une ligne, ni un arc de cercle 
         # c'est donc arc elliptique ou une courbe de bezier
         # on utilise une approximation linéaire (ajuster le nombre de points au besoin)
-        steps = 1000
+        steps = 500
 
         for k in range(steps+1):
             t = k / float(steps)
             end = segment.point(t)
-            (end_x, end_y) = SVG.xy_to_mm(end)
+            (end_x, end_y) = SVG.xy_mm(end)
             g1(x = end_x, y = end_y)
 
 # Possibilité d'ajouter les paramètres leadIn = True, leadOut = True pour fine tune les débuts et fins de parcours
@@ -546,7 +546,6 @@ def init():
     print("G17          (plan xy)")
     print("G90          (position absolue)")
     print("G91.1        (le centre des arcs est relatif à la position de départ des arcs)")
-    cutter_comp_off()
     print("G54          (système de coordonnées de travail)")
     print("G94          (feed (unités/minute))")
     print()
