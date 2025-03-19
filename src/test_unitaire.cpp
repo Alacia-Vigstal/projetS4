@@ -7,6 +7,15 @@
 std::vector<String> gcodeBuffer;
 int gcodeIndex = 0;
 
+// ======================= CONFIGURATION DES LIMIT SWITCH =================
+#define LIMIT_X_MIN  4
+#define LIMIT_X_MAX  16
+#define LIMIT_Y_MIN_L  17
+#define LIMIT_Y_MIN_R  23
+#define LIMIT_Y_MAX_L  25
+#define LIMIT_Y_MAX_R  14
+#define LIMIT_Z_MAX  13
+
 // ======================= CONFIGURATION DES MOTEURS =======================
 #define STEP_X  18
 #define DIR_X   19
@@ -32,6 +41,33 @@ AccelStepper moteurHauteurOutil(AccelStepper::DRIVER, STEP_Z, DIR_Z);
 #define ACCELERATION   3000
 #define PAS_PAR_DEGREE 10
 #define ERREUR_MAX_Y   10
+
+// ======================= HOMING FUNCTION =======================
+void homeAxes() {
+    Serial.println("Homing X and Y...");
+
+    // Move X towards MIN limit switch
+    moteurDeplacementX.setSpeed(-1000);  // Move in negative direction
+    while (digitalRead(LIMIT_X_MIN) == HIGH) {
+        moteurDeplacementX.runSpeed();
+    }
+    moteurDeplacementX.stop();  
+    moteurDeplacementX.setCurrentPosition(0);  // Set home position
+
+    // Move Y towards MIN limit switch (both motors)
+    moteurDeplacementY1.setSpeed(-1000);
+    moteurDeplacementY2.setSpeed(-1000);
+    while (digitalRead(LIMIT_Y_MIN_L) == HIGH && digitalRead(LIMIT_Y_MIN_R) == HIGH) {
+        moteurDeplacementY1.runSpeed();
+        moteurDeplacementY2.runSpeed();
+    }
+    moteurDeplacementY1.stop();
+    moteurDeplacementY2.stop();
+    moteurDeplacementY1.setCurrentPosition(0);
+    moteurDeplacementY2.setCurrentPosition(0);
+
+    Serial.println("Homing completed!");
+}
 
 // ======================= STOCKAGE DU G-CODE =======================
 void storeGCode(const char* gcode) {
@@ -88,6 +124,15 @@ void moveXYZ(float x, float y, float z, float zRot) {
 void setup() {
     Serial.begin(115200);
 
+    // Set limit switches as inputs with pull-up resistors
+    pinMode(LIMIT_X_MIN, INPUT_PULLUP);
+    pinMode(LIMIT_X_MAX, INPUT_PULLUP);
+    pinMode(LIMIT_Y_MIN_L, INPUT_PULLUP);
+    pinMode(LIMIT_Y_MIN_R, INPUT_PULLUP);
+    pinMode(LIMIT_Y_MAX_L, INPUT_PULLUP);
+    pinMode(LIMIT_Y_MAX_R, INPUT_PULLUP);
+    pinMode(LIMIT_Z_MAX, INPUT_PULLUP);
+    
     moteurDeplacementY2.setPinsInverted(true, false, false);
 
     moteurDeplacementX.setMaxSpeed(VITESSE_MAX);
@@ -105,11 +150,13 @@ void setup() {
     CircleGCode circle(0, 0, 100, 100);
     circle.generateGCode(storeGCode);
     Serial.println("Setup terminé, démarrage du loop...");
+
+    homeAxes();
 }
 
 // ======================= Loop =======================
 void loop() {
-    if (gcodeIndex < gcodeBuffer.size()) {
+    /*if (gcodeIndex < gcodeBuffer.size()) {
         String command = gcodeBuffer[gcodeIndex++];
         Serial.println("Exécution du G-code : " + command);
 
@@ -121,8 +168,27 @@ void loop() {
         }
     } else {
         yield();
+    }*/
+
+    if (digitalRead(LIMIT_X_MIN) == LOW) {
+        Serial.println("X Min Switch Pressed!");
     }
+    if (digitalRead(LIMIT_X_MAX) == LOW) {
+        Serial.println("X Max Switch Pressed!");
+    }
+    if (digitalRead(LIMIT_Y_MIN_L) == LOW || digitalRead(LIMIT_Y_MIN_R) == LOW) {
+        Serial.println("Y Min Switch Pressed!");
+    }
+    if (digitalRead(LIMIT_Y_MAX_L) == LOW || digitalRead(LIMIT_Y_MAX_R) == LOW) {
+        Serial.println("Y Max Switch Pressed!");
+    }
+    if (digitalRead(LIMIT_Z_MAX) == LOW) {
+        Serial.println("Z Min Switch Pressed!");
+    }
+
+    delay(100);  // Small delay to reduce serial spam
 }
+g
 
 
 
