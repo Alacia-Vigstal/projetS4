@@ -52,7 +52,7 @@ Tips and tricks pour la gestion de GitHub
          si pas uniquement main: 
          git checkout main
          git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
-   3. la deuxième personne qui finit doit:
+   3. la deuxième personne qui finit doit suivre les étapes suivantes
       3.1 ouvrir un terminal
       3.2 cd jusqu'au folder projetS4
       3.3 git status
