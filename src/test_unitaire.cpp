@@ -8,14 +8,14 @@ std::vector<String> gcodeBuffer;
 int gcodeIndex = 0;
 
 // ======================= CONFIGURATION DES MOTEURS =======================
-#define STEP_X  2
-#define DIR_X   5
-#define STEP_Y1 26
-#define DIR_Y1  27
-#define STEP_Y2 21
-#define DIR_Y2  22
-#define STEP_ROTATION_OUTIL  18
-#define DIR_ROTATION_OUTIL   19
+#define STEP_X  18
+#define DIR_X   19
+#define STEP_Y1 21
+#define DIR_Y1  22
+#define STEP_Y2 2
+#define DIR_Y2  5
+#define STEP_ROTATION_OUTIL  26
+#define DIR_ROTATION_OUTIL   27
 #define STEP_Z  32
 #define DIR_Z   33
 
@@ -79,6 +79,9 @@ void moveXYZ(float x, float y, float z, float zRot) {
             Serial.println("Alerte: Désalignement excessif de Y2 !");
         }
     }
+    Serial.print("Y1: "); Serial.print(moteurDeplacementY1.targetPosition());
+    Serial.print(" Y2: "); Serial.println(moteurDeplacementY2.targetPosition());
+
 }
 
 // ======================= Setup =======================
@@ -99,7 +102,7 @@ void setup() {
     moteurHauteurOutil.setAcceleration(ACCELERATION);
 
     Serial.println("ESP32 prêt à contrôler les moteurs !");
-    CircleGCode circle(0, 0, 100, 1000);
+    CircleGCode circle(0, 0, 100, 100);
     circle.generateGCode(storeGCode);
     Serial.println("Setup terminé, démarrage du loop...");
 }
