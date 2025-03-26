@@ -8,7 +8,7 @@
 // ======================= Booléens de contrôle global ====================
 volatile bool emergencyStop = false;
 volatile bool isPaused = false;
-volatile bool isStarted = true;
+volatile bool isStarted = false;
 
 // ======================= INTERRUPT HANDLER ==============================
 void handleEmergencyStop() {
@@ -21,21 +21,21 @@ int gcodeIndex = 0;
 
 // ======================= CONFIGURATION DES LIMIT SWITCH =================
 #define LIMIT_X_MIN    4
-#define LIMIT_X_MAX    34
-#define LIMIT_Y_MIN_L  35
+#define LIMIT_X_MAX    16
+#define LIMIT_Y_MIN_L  15
 #define LIMIT_Y_MIN_R  23
 #define LIMIT_Y_MAX_L  25
 #define LIMIT_Y_MAX_R  14
 #define LIMIT_Z_MAX    13
-#define LIMIT_ZRot     1
+#define LIMIT_ZRot     17
 
 // ======================= Load Cell ======================================
 #define Pression       12
 
 // ======================= Boutons ========================================
-#define PIN_RESET_URGENCE  15  // Choisis une pin libre (ex. GPIO15)
-#define PIN_PAUSE          16  // GPIO libre pour Pause
-#define PIN_START          17  // GPIO libre pour Start
+#define PIN_RESET_URGENCE  36  // Choisis une pin libre (ex. GPIO15)
+#define PIN_PAUSE          35  // GPIO libre pour Pause
+#define PIN_START          34  // GPIO libre pour Start
 
 // ======================= CONFIGURATION DES MOTEURS =======================
 #define STEP_X  18
@@ -70,16 +70,20 @@ void homeAxes() {
     Serial.println("Homing X, Y, Z et ZRot...");
 
     // Move X towards MIN limit switch
-    moteurDeplacementX.setSpeed(-1000);  // Move in negative direction
-    while (digitalRead(LIMIT_X_MIN) == HIGH) {
+    moteurDeplacementX.setSpeed(500);  // Move in negative direction
+    while (digitalRead(LIMIT_X_MIN) != LOW) {
+        if (digitalRead(LIMIT_X_MIN) == LOW) Serial.println("X Min Switch Pressed!");
         moteurDeplacementX.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
     }
     moteurDeplacementX.stop();  
     moteurDeplacementX.setCurrentPosition(0);  // Set home position
+    Serial.println("Homing X");
 
+    /*
     // Homing Y avec arrêt indépendant des moteurs gauche/droite
-    moteurDeplacementY1.setSpeed(-1000);
-    moteurDeplacementY2.setSpeed(-1000);
+    moteurDeplacementY1.setSpeed(-500);
+    moteurDeplacementY2.setSpeed(-500);
     bool y1Homed = false;
     bool y2Homed = false;
 
@@ -87,6 +91,7 @@ void homeAxes() {
         if (!y1Homed) {
             if (digitalRead(LIMIT_Y_MIN_L) == HIGH) {
                 moteurDeplacementY1.runSpeed();
+                delayMicroseconds(100); // Ajoute un petit délai
             } else {
                 moteurDeplacementY1.stop();  // Stoppe immédiatement
                 moteurDeplacementY1.setCurrentPosition(0);
@@ -97,6 +102,7 @@ void homeAxes() {
         if (!y2Homed) {
             if (digitalRead(LIMIT_Y_MIN_R) == HIGH) {
                 moteurDeplacementY2.runSpeed();
+                delayMicroseconds(100); // Ajoute un petit délai
             } else {
                 moteurDeplacementY2.stop();  // Stoppe immédiatement
                 moteurDeplacementY2.setCurrentPosition(0);
@@ -104,22 +110,28 @@ void homeAxes() {
             }
         }
     }
+    Serial.println("Homing Y");
 
     // Move Z towards MIN limit switch
     moteurHauteurOutil.setSpeed(500);
     while (digitalRead(LIMIT_Z_MAX) == HIGH) {
         moteurHauteurOutil.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
     }
     moteurHauteurOutil.stop();
     moteurHauteurOutil.setCurrentPosition(0);
+    Serial.println("Homing Z");
 
     // Move ZRot towards MIN limit switch
     moteurRotationOutil.setSpeed(-500);
     while (digitalRead(LIMIT_ZRot) == HIGH) {
         moteurRotationOutil.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
     }
     moteurRotationOutil.stop();
     moteurRotationOutil.setCurrentPosition(0);
+    Serial.println("Homing ZRot");
+    */
 
     Serial.println("Homing terminé !");
 }
@@ -186,8 +198,9 @@ void moveXYZ(float x, float y, float z, float zRot) {
             Serial.println("Reprise du mouvement.");
         }
 
-        multiStepper.run();
+        moteurDeplacementY2.moveTo(moteurDeplacementY1.currentPosition());
         moteurDeplacementY2.run();
+        multiStepper.run();
     }
 }
 
@@ -292,13 +305,13 @@ void setup() {
     multiStepper.addStepper(moteurRotationOutil);
 
     Serial.println("Fin du setup");
-    //homeAxes(); // Tu peux l’activer si tu veux faire un homing au départ
+    homeAxes(); // Tu peux l’activer si tu veux faire un homing au départ
 }
 
 // ======================= Loop =======================
 void loop() {
     printLimitSwitchStates();
-
+/*
     if (!isStarted) {
         Serial.println("En attente du démarrage...");
         while (!isStarted) {
@@ -326,6 +339,6 @@ void loop() {
         Serial.println("Toutes les commandes G-code ont été exécutées.");
         gcodeIndex = 0;
     }
-
+*/
     yield();
 }
