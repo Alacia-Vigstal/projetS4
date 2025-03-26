@@ -2,10 +2,20 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <AccelStepper.h>
+#include <MultiStepper.h>
 #include <vector>
-#include "circle_gcode.hpp" // Inclure le fichier de génération du G-code
 
-// Déclaration du buffer G-code
+// ======================= Booléens de contrôle global ====================
+volatile bool emergencyStop = false;
+volatile bool isPaused = false;
+volatile bool isStarted = true;
+
+// ======================= INTERRUPT HANDLER ==============================
+void handleEmergencyStop() {
+    emergencyStop = true;
+}
+
+// ======================= Déclaration du buffer G-code ===================
 std::vector<String> gcodeBuffer;
 int gcodeIndex = 0;
 
@@ -17,7 +27,15 @@ int gcodeIndex = 0;
 #define LIMIT_Y_MAX_L  25
 #define LIMIT_Y_MAX_R  14
 #define LIMIT_Z_MAX    13
-#define LIMIT_ZRot     12
+#define LIMIT_ZRot     1
+
+// ======================= Load Cell ======================================
+#define Pression       12
+
+// ======================= Boutons ========================================
+#define PIN_RESET_URGENCE  15  // Choisis une pin libre (ex. GPIO15)
+#define PIN_PAUSE          16  // GPIO libre pour Pause
+#define PIN_START          17  // GPIO libre pour Start
 
 // ======================= CONFIGURATION DES MOTEURS =======================
 #define STEP_X  18
@@ -36,6 +54,7 @@ AccelStepper moteurDeplacementY1(AccelStepper::DRIVER, STEP_Y1, DIR_Y1);
 AccelStepper moteurDeplacementY2(AccelStepper::DRIVER, STEP_Y2, DIR_Y2);
 AccelStepper moteurRotationOutil(AccelStepper::DRIVER, STEP_ROTATION_OUTIL, DIR_ROTATION_OUTIL);
 AccelStepper moteurHauteurOutil(AccelStepper::DRIVER, STEP_Z, DIR_Z);
+MultiStepper multiStepper;
 
 // ======================= CONFIGURATION DES PARAMETRES =======================
 #define PAS_PAR_MM_X   80
@@ -46,9 +65,9 @@ AccelStepper moteurHauteurOutil(AccelStepper::DRIVER, STEP_Z, DIR_Z);
 #define PAS_PAR_DEGREE 10
 #define ERREUR_MAX_Y   10
 
-// ======================= HOMING FUNCTION =======================
+// ======================= HOMING FUNCTION ====================================
 void homeAxes() {
-    Serial.println("Homing X and Y...");
+    Serial.println("Homing X, Y, Z et ZRot...");
 
     // Move X towards MIN limit switch
     moteurDeplacementX.setSpeed(-1000);  // Move in negative direction
@@ -58,22 +77,54 @@ void homeAxes() {
     moteurDeplacementX.stop();  
     moteurDeplacementX.setCurrentPosition(0);  // Set home position
 
-    // Move Y towards MIN limit switch (both motors)
+    // Homing Y avec arrêt indépendant des moteurs gauche/droite
     moteurDeplacementY1.setSpeed(-1000);
     moteurDeplacementY2.setSpeed(-1000);
-    while (digitalRead(LIMIT_Y_MIN_L) == HIGH && digitalRead(LIMIT_Y_MIN_R) == HIGH) {
-        moteurDeplacementY1.runSpeed();
-        moteurDeplacementY2.runSpeed();
-    }
-    moteurDeplacementY1.stop();
-    moteurDeplacementY2.stop();
-    moteurDeplacementY1.setCurrentPosition(0);
-    moteurDeplacementY2.setCurrentPosition(0);
+    bool y1Homed = false;
+    bool y2Homed = false;
 
-    Serial.println("Homing completed!");
+    while (!y1Homed || !y2Homed) {
+        if (!y1Homed) {
+            if (digitalRead(LIMIT_Y_MIN_L) == HIGH) {
+                moteurDeplacementY1.runSpeed();
+            } else {
+                moteurDeplacementY1.stop();  // Stoppe immédiatement
+                moteurDeplacementY1.setCurrentPosition(0);
+                y1Homed = true;
+            }
+        }
+
+        if (!y2Homed) {
+            if (digitalRead(LIMIT_Y_MIN_R) == HIGH) {
+                moteurDeplacementY2.runSpeed();
+            } else {
+                moteurDeplacementY2.stop();  // Stoppe immédiatement
+                moteurDeplacementY2.setCurrentPosition(0);
+                y2Homed = true;
+            }
+        }
+    }
+
+    // Move Z towards MIN limit switch
+    moteurHauteurOutil.setSpeed(500);
+    while (digitalRead(LIMIT_Z_MAX) == HIGH) {
+        moteurHauteurOutil.runSpeed();
+    }
+    moteurHauteurOutil.stop();
+    moteurHauteurOutil.setCurrentPosition(0);
+
+    // Move ZRot towards MIN limit switch
+    moteurRotationOutil.setSpeed(-500);
+    while (digitalRead(LIMIT_ZRot) == HIGH) {
+        moteurRotationOutil.runSpeed();
+    }
+    moteurRotationOutil.stop();
+    moteurRotationOutil.setCurrentPosition(0);
+
+    Serial.println("Homing terminé !");
 }
 
-// ======================= STOCKAGE DU G-CODE =======================
+// ======================= STOCKAGE DU G-CODE ==========================
 std::vector<String> gcode_command = {
         "G0 X0 Y0 Z0 ZRot0",
         "G0 X100 Y0 Z10 ZRot90",
@@ -82,8 +133,7 @@ std::vector<String> gcode_command = {
         "G0 X0 Y0 Z0 ZRot0",
     };
 
-
-// ======================= STOCKAGE DU G-CODE =======================
+// ======================= STOCKAGE DU G-CODE ==========================
 void storeGCode(const char* gcode) {
     gcodeBuffer.push_back(String(gcode));
     Serial.println(gcode);
@@ -99,27 +149,45 @@ void moveXYZ(float x, float y, float z, float zRot) {
     long stepsZ = z * PAS_PAR_MM_Z;
     long stepsRotationOutil = zRot * PAS_PAR_DEGREE;
 
-    moteurHauteurOutil.moveTo(stepsZ);
-    moteurRotationOutil.moveTo(stepsRotationOutil);
-    moteurDeplacementX.moveTo(stepsX);
-    moteurDeplacementY1.moveTo(stepsY);
+    // Tableau contenant les positions cibles pour les moteurs gérés par MultiStepper.
+    // L'ordre des valeurs doit correspondre à l'ordre des moteurs ajoutés à multiStepper.
+    long positions[4] = { stepsX, stepsY, stepsZ, stepsRotationOutil };
+
+
+    Serial.println("Commande reçue : X=" + String(x) + " Y=" + String(y) + " Z=" + String(z) + " ZRot=" + String(zRot));
+    Serial.println("Steps X: " + String(stepsX) + " Y: " + String(stepsY));
     moteurDeplacementY2.moveTo(stepsY);
+    multiStepper.moveTo(positions);
 
-    // Boucle de mise à jour optimisée
-    while (moteurDeplacementX.distanceToGo() || moteurDeplacementY1.distanceToGo() || moteurDeplacementY2.distanceToGo() || moteurRotationOutil.distanceToGo() || moteurHauteurOutil.distanceToGo()) {
-        // Mettez à jour tous les moteurs simultanément
-        moteurDeplacementX.run();
-        moteurDeplacementY1.run();
-        moteurDeplacementY2.run();
-        moteurRotationOutil.run();
-        moteurHauteurOutil.run();
-
-        // Gestion dynamique de la vitesse en fonction de la distance restante
-        if (moteurDeplacementX.distanceToGo() < 100) {
-            moteurDeplacementX.setMaxSpeed(1500);
-        } else {
-            moteurDeplacementX.setMaxSpeed(VITESSE_MAX);
+    while (
+        moteurDeplacementX.distanceToGo() ||
+        moteurDeplacementY1.distanceToGo() ||
+        moteurDeplacementY2.distanceToGo() ||
+        moteurRotationOutil.distanceToGo() ||
+        moteurHauteurOutil.distanceToGo()
+    ) {
+        if (emergencyStop) {
+            Serial.println("Arrêt d'urgence déclenché !");
+            moteurDeplacementX.stop();
+            moteurDeplacementY1.stop();
+            moteurDeplacementY2.stop();
+            moteurRotationOutil.stop();
+            moteurHauteurOutil.stop();
+            while (true);
         }
+
+        // Pause manuelle
+        if (isPaused) {
+            Serial.println("Système en pause.");
+            while (isPaused) {
+                delay(100);
+                yield();
+            }
+            Serial.println("Reprise du mouvement.");
+        }
+
+        multiStepper.run();
+        moteurDeplacementY2.run();
     }
 }
 
@@ -134,11 +202,45 @@ void executeGCodeCommand(const String& command) {
     moveXYZ(x, y, z, zRot);
 }
 
+// ======================= Boutons ===================================
+void checkEmergencyReset() {
+    if (digitalRead(PIN_RESET_URGENCE) == LOW) {
+        emergencyStop = false;
+        Serial.println("Reset d’urgence effectué.");
+    }
+}
+
+void handlePauseButton() {
+    isPaused = !isPaused;  // Toggle pause
+    Serial.println(isPaused ? "Pause activée" : "Reprise");
+}
+
+void handleStartButton() {
+    isStarted = true;
+    Serial.println("Démarrage demandé");
+}
+
+// ======================= printLimitSwitchStates ====================
+void printLimitSwitchStates() {
+    if (digitalRead(LIMIT_X_MIN) == LOW) Serial.println("X Min Switch Pressed!");
+    if (digitalRead(LIMIT_X_MAX) == LOW) Serial.println("X Max Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MIN_L) == LOW) Serial.println("Y Min L Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MIN_R) == LOW) Serial.println("Y Min R Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MAX_L) == LOW) Serial.println("Y Max L Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MAX_R) == LOW) Serial.println("Y Max R Switch Pressed!");
+    if (digitalRead(LIMIT_Z_MAX) == LOW) Serial.println("Z Max Switch Pressed!");
+    if (digitalRead(LIMIT_ZRot) == LOW) Serial.println("ZRot Switch Pressed!");
+}
+
 // ======================= Setup =======================
 void setup() {
     Serial.begin(115200);
+    Serial.flush();
+    delay(1000);  // Laisse le temps au port série de s'initialiser
+    Serial.println("Début du setup");
 
     // Set limit switches as inputs with pull-up resistors
+    Serial.println("Pins des limiteurs configurés");
     pinMode(LIMIT_X_MIN, INPUT_PULLUP);
     pinMode(LIMIT_X_MAX, INPUT_PULLUP);
     pinMode(LIMIT_Y_MIN_L, INPUT_PULLUP);
@@ -148,19 +250,30 @@ void setup() {
     pinMode(LIMIT_Z_MAX, INPUT_PULLUP);
     pinMode(LIMIT_ZRot, INPUT_PULLUP);
 
-    // Vérification de l'état initial
-    Serial.println("Vérification des limit switches au démarrage:");
-    //Serial.print("X Min: "); Serial.println(digitalRead(LIMIT_X_MIN));
-    //Serial.print("X Max: "); Serial.println(digitalRead(LIMIT_X_MAX));
-    Serial.print("Y Min L: "); Serial.println(digitalRead(LIMIT_Y_MIN_L));
-    Serial.print("Y Min R: "); Serial.println(digitalRead(LIMIT_Y_MIN_R));
-    Serial.print("Y Max L: "); Serial.println(digitalRead(LIMIT_Y_MAX_L));
-    Serial.print("Y Max R: "); Serial.println(digitalRead(LIMIT_Y_MAX_R));
-    //Serial.print("Z Max: "); Serial.println(digitalRead(LIMIT_Z_MAX));
-    //Serial.print("Z Rot: "); Serial.println(digitalRead(LIMIT_ZRot));
-    
-    moteurDeplacementY2.setPinsInverted(true, false, false);
+    // Boutons
+    Serial.println("Boutons configurés");
+    pinMode(PIN_RESET_URGENCE, INPUT_PULLUP);
+    pinMode(PIN_PAUSE, INPUT_PULLUP);
+    pinMode(PIN_START, INPUT_PULLUP);
 
+    /*
+    // Attacher les interruptions
+    Serial.println("Interruptions attachées");
+    attachInterrupt(digitalPinToInterrupt(LIMIT_X_MIN), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_X_MAX), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MIN_L), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MIN_R), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MAX_L), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MAX_R), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_Z_MAX), handleEmergencyStop, FALLING);
+    attachInterrupt(digitalPinToInterrupt(LIMIT_ZRot), handleEmergencyStop, FALLING);
+    Serial.println("Interruptions 2 attachées");
+    attachInterrupt(digitalPinToInterrupt(PIN_PAUSE), handlePauseButton, FALLING);
+    attachInterrupt(digitalPinToInterrupt(PIN_START), handleStartButton, FALLING);
+    */
+
+    moteurDeplacementY2.setPinsInverted(true, false, false);
+    Serial.println("Vitesse des moteurs réglée");
     moteurDeplacementX.setMaxSpeed(VITESSE_MAX);
     moteurDeplacementX.setAcceleration(ACCELERATION);
     moteurDeplacementY1.setMaxSpeed(VITESSE_MAX);
@@ -171,95 +284,48 @@ void setup() {
     moteurRotationOutil.setAcceleration(ACCELERATION);
     moteurHauteurOutil.setMaxSpeed(VITESSE_MAX);
     moteurHauteurOutil.setAcceleration(ACCELERATION);
+
+    Serial.println("MultiStepper initialisé");
+    multiStepper.addStepper(moteurDeplacementX);
+    multiStepper.addStepper(moteurDeplacementY1);
+    multiStepper.addStepper(moteurHauteurOutil);
+    multiStepper.addStepper(moteurRotationOutil);
+
+    Serial.println("Fin du setup");
+    //homeAxes(); // Tu peux l’activer si tu veux faire un homing au départ
 }
 
 // ======================= Loop =======================
 void loop() {
+    printLimitSwitchStates();
+
+    if (!isStarted) {
+        Serial.println("En attente du démarrage...");
+        while (!isStarted) {
+            delay(100);
+        }
+    }
+
     // Vérifier si le tableau de commandes G-code contient des éléments
-    if (gcodeIndex < gcode_command.size()) {
-        // Récupérer la commande à exécuter à l'index actuel
+    if (!emergencyStop && gcodeIndex < gcode_command.size()) {
+        Serial.println("Loop en cours, gcodeIndex = " + String(gcodeIndex));
         String command = gcode_command[gcodeIndex++];
-        
-        // Afficher la commande en cours d'exécution
-        Serial.println("Exécution du G-code : " + command);
-        
-        // Exécuter la commande en appelant la fonction correspondante
+        Serial.println("Exécution : " + command);
         executeGCodeCommand(command);
     } 
+
+    else if (emergencyStop) {
+        Serial.println("Système bloqué. Appuyez sur le bouton RESET.");
+        while (emergencyStop) {
+            checkEmergencyReset();  // Autorise un déblocage manuel
+            delay(100);
+        }
+    }
+
     else {
-        // Si toutes les commandes ont été exécutées, relancer l'exécution
-        gcodeIndex = 0; // Réinitialiser l'index pour recommencer le cycle
-        Serial.println("Toutes les commandes G-code ont été exécutées, recommencez.");
+        Serial.println("Toutes les commandes G-code ont été exécutées.");
+        gcodeIndex = 0;
     }
 
-    /*
-    if (digitalRead(LIMIT_X_MIN) == LOW) {
-        Serial.println("X Min Switch Pressed!");
-    }
-    if (digitalRead(LIMIT_X_MAX) == LOW) {
-        Serial.println("X Max Switch Pressed!");
-    }
-    */
-    /*if (digitalRead(LIMIT_Y_MIN_L) == LOW) {
-        Serial.println("Y Min L Switch Pressed!");
-    }*/
-    if (digitalRead(LIMIT_Y_MIN_R) == LOW) {
-        Serial.println("Y Min R(L temp) Switch Pressed!");
-    }
-    if (digitalRead(LIMIT_Y_MAX_L) == LOW) {
-        Serial.println("Y Max L Switch Pressed!");
-    }
-    if (digitalRead(LIMIT_Y_MAX_R) == LOW) {
-        Serial.println("Y Max R Switch Pressed!");
-    }
-    /*
-    if (digitalRead(LIMIT_Z_MAX) == LOW) {
-        Serial.println("Z Min Switch Pressed!");
-    }
-    if (digitalRead(LIMIT_ZRot) == LOW) {
-        Serial.println("ZRot Switch Pressed!");
-    }
-    */
-
-    yield();  // Small delay to reduce serial spam
+    yield();
 }
-
-//Pour le code en temps réel
-/* 
-#include <Arduino.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-void TaskBlink(void *pvParameters);
-void TaskSerial(void *pvParameters);
-
-void setup() {
-    Serial.begin(115200);
-    
-    xTaskCreate(TaskBlink, "LED Task", 1000, NULL, 1, NULL);
-    xTaskCreate(TaskSerial, "Serial Task", 1000, NULL, 1, NULL);
-}
-
-void loop() {
-    vTaskDelay(pdMS_TO_TICKS(1000)); // Laisser FreeRTOS gérer
-}
-
-// Tâche pour clignoter une LED
-void TaskBlink(void *pvParameters) {
-    pinMode(LED_BUILTIN, OUTPUT);
-    while (1) {
-        digitalWrite(LED_BUILTIN, HIGH);
-        vTaskDelay(pdMS_TO_TICKS(500)); 
-        digitalWrite(LED_BUILTIN, LOW);
-        vTaskDelay(pdMS_TO_TICKS(500)); 
-    }
-}
-
-// Tâche pour envoyer un message série
-void TaskSerial(void *pvParameters) {
-    while (1) {
-        Serial.println("Hello from FreeRTOS on ESP32!");
-        vTaskDelay(pdMS_TO_TICKS(1000)); 
-    }
-}
-*/
