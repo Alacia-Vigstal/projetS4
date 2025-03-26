@@ -15,9 +15,10 @@ class line:
     """
     une ligne droite, represente un deplacement g1 en gcode vers le point specifie
     """
-    def __init__(self, x=None, y=None):
+    def __init__(self, x = None, y = None, z = None):
         self.x = x
         self.y = y
+        self.z = z
         #x, y sont les coordonees de la position de fin
 
     def __str__(self):
@@ -31,8 +32,16 @@ class line:
         if self.y is not None:
             if lineHasPos:
                 lineContent += ", "
+
             lineContent += "y=%.4f" % self.y
             lineHasPos = True
+        
+        if self.z is not None:
+            if have_arg:
+                r += ", "
+
+            r += "z=%.4f" % self.z
+            have_arg = True
 
         lineContent += ")"
         return lineContent
@@ -43,10 +52,10 @@ class arc:
 
     ne pas utiliser directement, plutot utiliser une des sous classes precisant le sens de la rotation
     """
-    def __init__(self, x=None, y=None, i=None, j=None):
+    def __init__(self, x = None, y = None, z = None, i = None, j = None):
         self.x = x
         self.y = y
-
+        self.z = z
         self.i = i
         self.j = j
         #i, j sont les coordonees du centre de rotation de l'arc
@@ -62,24 +71,33 @@ class arc:
         if self.y is not None:
             if arcHasPos:
                 arcContent += ", "
+
             arcContent += "y=%.4f" % self.y
             arcHasPos = True
+        
+        if self.i is not None:
+            if have_arg:
+                r += ", "
+
+            r += "i=%.4f" % self.i
+            have_arg = True
 
         if self.i is not None:
             if arcHasPos:
                 arcContent += ", "
+
             arcContent += "i=%.4f" % self.i
             arcHasPos = True
 
         if self.j is not None:
             if arcHasPos:
                 arcContent += ", "
+
             arcContent += "j=%.4f" % self.j
             arcHasPos = True
 
         arcContent += ")"
         return arcContent
-
 
 class arcCW(arc):
     """
@@ -407,11 +425,11 @@ def handleIntersections(pathList):
 
     return paths
 
-def pathSegment2Gcode(SVG, segment, z = None):
+def pathSegment2Gcode(SVG, segment, Z = None):
     if type(segment) == svgpathtools.path.Line:
         (start_x, start_y) = SVG.xy_mm(segment.start)
         (end_x, end_y) = SVG.xy_mm(segment.end)
-        g1(x = end_x, y = end_y)
+        g1(x = end_x, y = end_y, z = Z)
         
     elif type(segment) is svgpathtools.path.Arc and (segment.radius.real == segment.radius.imag):
         (end_x, end_y) = SVG.xy_mm(segment.end)
@@ -420,10 +438,10 @@ def pathSegment2Gcode(SVG, segment, z = None):
         # Dans un SVG sweep == True -> clockwise et sweep == False -> counter-clockwise
         # Dans svgpathtools c'est l'inverse
         if segment.sweep:
-            g2(x = end_x, y = end_y, i = center_x, j = center_y)
+            g2(x = end_x, y = end_y, z = Z, i = center_x, j = center_y)
 
         else:
-            g3(x = end_x, y = end_y, i = center_x, j = center_y)
+            g3(x = end_x, y = end_y, z = Z, i = center_x, j = center_y)
 
     else:
         # Le segment n'es ni une ligne, ni un arc de cercle 
@@ -431,13 +449,13 @@ def pathSegment2Gcode(SVG, segment, z = None):
         # on utilise une approximation linéaire (ajuster le nombre de points au besoin)
         steps = 500
 
-        for k in range(steps+1):
+        for k in range(steps + 1):
             t = k / float(steps)
             end = segment.point(t)
             (end_x, end_y) = SVG.xy_mm(end)
             g1(x = end_x, y = end_y)
 
-def path2Gcode(SVG, path, zRapid = 10.0, zCutDepth = 0.0):
+def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     """
     Output le Gcode pour les paths d'un SVG donné.
     Le Gcode est généré pour un cutter (pas de spindle) avec retrait entre les coupes pour les changements de direction
