@@ -203,9 +203,9 @@ def handlePath(svgFilename):
     return operations
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert SVG file to G-code commands.")
-    parser.add_argument("svgfile", help="Input SVG file")
-    parser.add_argument("output", help="Output G-code text file")
+    parser = argparse.ArgumentParser(description = "Convert SVG file to G-code commands.")
+    parser.add_argument("svgfile", help = "Input SVG file")
+    parser.add_argument("output", help = "Output G-code text file")
     args = parser.parse_args()
     
     # Traite le SVG pour générer la liste des operations
