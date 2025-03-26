@@ -126,6 +126,7 @@ class SVG:
         """
         viewport definition
         """
+        # height et width sont 'inversées'
         val, units, scale = self.findWidthHeight(self.SVGAttributes['height'])
         self.viewportHeight = val
         self.viewportUnitsY = units
@@ -223,10 +224,10 @@ class SVG:
         
         # Dans un SVG y est positif vers le bas, mais en Gcode c'est positif vers le haut
         if self.GcodeOrigin == self.GCODE_ORIGIN_IS_SVG_ORIGIN:
-            out = -y * self.y_scale
+            out = -y * self.scaleY
 
         elif self.GcodeOrigin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
-            out = (self.viewBoxHeight - (y - self.viewBoxY)) * self.y_scale
+            out = (self.viewBoxHeight - (y - self.viewBoxY)) * self.scaleY
 
         return out
 
@@ -406,7 +407,7 @@ def handleIntersections(pathList):
 
     return paths
 
-def pathSegment2Gcode(SVG, segment):
+def pathSegment2Gcode(SVG, segment, z = None):
     if type(segment) == svgpathtools.path.Line:
         (start_x, start_y) = SVG.xy_mm(segment.start)
         (end_x, end_y) = SVG.xy_mm(segment.end)
@@ -536,6 +537,7 @@ def relativeArcCenters():
 def toolUp():
     absolute()
     print("G53 G0 Z0")
+    global currentZ 
     currentZ = False
 
 def presentationPosition():
@@ -543,6 +545,8 @@ def presentationPosition():
     toolUp()
 
     print("G53 G0 X9 Y12")
+    global currentX
+    global currentY
     currentX = None
     currentY = None
 
@@ -571,9 +575,10 @@ def coordToStr(val=None):
 
     return "%.4f" % val
 
-def g0(path = None, x = None, y = None):
+def g0(path = None, x = None, y = None, z = None):
     global currentX
     global currentY
+    global currentZ
 
     if path is not None:
         print()
@@ -581,6 +586,7 @@ def g0(path = None, x = None, y = None):
 
         for waypoint in path:
             g0(**waypoint)
+
         print()
 
     else:
@@ -593,11 +599,20 @@ def g0(path = None, x = None, y = None):
             currentY = y
             print(" Y%s" % coordToStr(y), end = '')
 
+        if z:
+            currentZ = True
+            print(" Z est vrai alors contact avec cutting mat", end='')
+        
+        if not z:
+            currentZ = False
+            print(" Z est faux alors pas en contact avec cutting mat", end='')
+
         print()
 
-def g1(path = None, x = None, y = None):
+def g1(path = None, x = None, y = None, z = None):
     global currentX
     global currentY
+    global currentZ
 
     if path is not None:
         print()
@@ -616,12 +631,21 @@ def g1(path = None, x = None, y = None):
         if y is not None:
             currentY = y
             print(" Y%s" % coordToStr(y), end = '')
+        
+        if z:
+            currentZ = True
+            print(" Z est vrai alors contact avec cutting mat", end='')
+        
+        if not z:
+            currentZ = False
+            print(" Z est faux alors pas en contact avec cutting mat", end='')
 
         print()
 
-def g2(x = None, y = None, i = None, j = None):
+def g2(x = None, y = None, z = None, i = None, j = None):
     global currentX
     global currentY
+    global currentZ
 
     if i is None and j is None:
         raise TypeError("gcoder.g2() without i or j")
@@ -634,7 +658,15 @@ def g2(x = None, y = None, i = None, j = None):
 
     if y is not None:
         currentY = y
-        print(" Y%s" % coordToStr(y), end = '')
+        print(" Y%s" % coordToStr(y), end = '') 
+    
+    if z:
+        currentZ = True
+        print(" Z est vrai alors contact avec cutting mat", end='')
+        
+    if not z:
+        currentZ = False
+        print(" Z est faux alors pas en contact avec cutting mat", end='')
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
@@ -645,9 +677,10 @@ def g2(x = None, y = None, i = None, j = None):
     print()
 
 
-def g3(x = None, y = None, i = None, j = None):
+def g3(x = None, y = None, z = None, i = None, j = None):
     global currentX
     global currentY
+    global currentZ
 
     if i is None and j is None:
         raise TypeError("gcoder.g3() without i or j")
@@ -661,6 +694,14 @@ def g3(x = None, y = None, i = None, j = None):
     if y is not None:
         currentY = y
         print(" Y%s" % coordToStr(y), end = '')
+    
+    if z:
+        currentZ = True
+        print(" Z est vrai alors contact avec cutting mat", end='')
+        
+    if not z:
+        currentZ = False
+        print(" Z est faux alors pas en contact avec cutting mat", end='')
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
