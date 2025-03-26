@@ -37,11 +37,11 @@ class line:
             lineHasPos = True
         
         if self.z is not None:
-            if have_arg:
-                r += ", "
+            if lineHasPos:
+                lineContent += ", "
 
-            r += "z=%.4f" % self.z
-            have_arg = True
+            lineContent += "z=%.4f" % self.z
+            lineHasPos = True
 
         lineContent += ")"
         return lineContent
@@ -75,12 +75,12 @@ class arc:
             arcContent += "y=%.4f" % self.y
             arcHasPos = True
         
-        if self.i is not None:
-            if have_arg:
-                r += ", "
-
-            r += "i=%.4f" % self.i
-            have_arg = True
+        if self.z is not None:
+            if arcHasPos:
+                arcContent += ", "
+                
+            arcContent += "z=%.4f" % self.z
+            arcHasPos = True
 
         if self.i is not None:
             if arcHasPos:
@@ -370,17 +370,16 @@ def handleIntersections(pathList):
 
         for i in range(len(intersections)):
             if intersections[i][1] >= currentSegIndex:
-                intersections[i][1] += 1  # for currentSeg that got split
+                intersections[i][1] += 1 
 
             if intersections[i][1] >= otherSegIndex:
-                intersections[i][1] += 1  # for otherSeg that got split
+                intersections[i][1] += 1
 
-        # Add this new intersection we just made.
+        # Ajout de la nouvelle intersection qui vient d'être créée
         i = [currentSegIndex, otherSegIndex]
         intersections.append(i)
 
-        # Look for intersections in the remainder of this_seg (the second
-        # part of the split).
+        # Incrémentation de l'index pour passer au prochain segment
         currentSegIndex += 1
 
         paths = []
@@ -455,6 +454,7 @@ def pathSegment2Gcode(SVG, segment, Z = None):
             (end_x, end_y) = SVG.xy_mm(end)
             g1(x = end_x, y = end_y)
 
+# Z False veut dire up (pas en contact avec le tapis de découpe)
 def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     """
     Output le Gcode pour les paths d'un SVG donné.
@@ -469,7 +469,7 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     - plungeFeed: paramètre pour la vitesse de descente verticale
     """
     if not path:
-        raise ValueError("Path is empty; nothing to cut.")
+        raise ValueError("Path is empty")
 
     # tolérance pour déterminer si besoin de retrait lors de changements de direction
     ANGLE_TOLERANCE = 1.0
@@ -490,18 +490,24 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
         dot = max(-1.0, min(1.0, vec1[0] * vec2[0] + vec1[1] * vec2[1]))
         return math.degrees(math.acos(dot))
 
-    g0(z = zRapid)
+    # s'assure que l'outil est en position haute
+    g1(z = zRapid)
 
+    # déplacement de l'outil vers la position de début de découpe
     start_x, start_y = SVG.xy_mm(path[0].start)
     g0(x = start_x, y = start_y)
 
-    comment("Begin single-pass cutting with auto-retraction on direction changes")
+    comment("Début de la découpe simple avec retrait lors de changements de direction")
 
+    # Descente de l'outil
     g1(z = zCutDepth)
 
     prevDirection = unitDirectionVector(path[0])
+
+    # Coupe du premier segment
     pathSegment2Gcode(SVG, path[0], z = zCutDepth)
 
+    # Coupe des segments suivants avec retrait lors de changements de direction
     for i in range(1, len(path)):
         currentSegment = path[i]
         currentDirection = unitDirectionVector(currentSegment)
@@ -518,7 +524,7 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
         pathSegment2Gcode(SVG, currentSegment, z = zCutDepth)
         prevDirection = currentDirection
 
-    comment("End of cut - no lead-out or spindle logic needed")
+    comment("Fin de la découpe")
 
 # Paramètres pour track la position de l'outil
 currentX = None
@@ -609,6 +615,7 @@ def g0(path = None, x = None, y = None, z = None):
 
     else:
         print("G0", end='')
+
         if x is not None:
             currentX = x
             print(" X%s" % coordToStr(x), end = '')
