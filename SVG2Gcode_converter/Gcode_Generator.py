@@ -133,13 +133,15 @@ class SVG:
         self.GcodeOrigin = origin
         print("Gcode origin: ", origin, file = sys.stderr)
 
+# correction de problème @ 138
+        paths, attributes, svgAttributes = svgpathtools.svg2paths2(self.SVGFileName)
+        self.SVGAttributes = svgAttributes  # Use this in place of self.SVGFile.root.attrib
         self.SVGPaths = []
 
-        for path in self.SVGFile.SVGPaths():
+        for path in paths:
             for continuous_path in path.continuous_subpaths():
                 self.SVGPaths.append(continuous_path)
-        
-        self.SVGAttributes = self.SVGFile.root.attrib
+# fin correction de problème @ 138
 
         """
         viewport definition
