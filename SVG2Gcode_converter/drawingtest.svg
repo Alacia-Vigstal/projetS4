@@ -36,6 +36,14 @@
   <defs
      id="defs1">
     <linearGradient
+       id="swatch2"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop2" />
+    </linearGradient>
+    <linearGradient
        id="swatch1"
        inkscape:swatch="solid">
       <stop
@@ -45,12 +53,12 @@
     </linearGradient>
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#swatch1"
-       id="linearGradient1"
-       x1="11.046081"
-       y1="60.629783"
-       x2="144.37129"
-       y2="60.629783"
+       xlink:href="#swatch2"
+       id="linearGradient2"
+       x1="36.565771"
+       y1="55.960453"
+       x2="60.037043"
+       y2="55.960453"
        gradientUnits="userSpaceOnUse" />
   </defs>
   <g
@@ -58,8 +66,8 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:none;stroke-width:0.265;stroke-dasharray:none;stroke:url(#linearGradient1)"
-       d="m 19.024083,55.095721 26.188999,-24.21247 -0.247068,0.247068 c 0,0 21.247679,19.518214 20.012347,19.76528 -1.235329,0.247065 -1.235329,0.247065 -1.235329,0.247065 0,0 24.706601,-28.906723 42.742418,-29.894987 18.03582,-0.988264 35.33044,12.847433 37.8011,29.894987 2.47066,17.047556 -49.907332,48.919076 -49.907332,48.919076 L 60.531173,57.072249 c 0,0 -54.1074567,41.012959 -49.166136,26.683131 4.94132,-14.329831 4.94132,-14.329831 4.94132,-14.329831 z"
+       style="fill:none;stroke-width:0.465;stroke-dasharray:none;stroke:url(#linearGradient2)"
+       d="M 36.565771,68.437286 V 43.483619 h 23.471272 l -0.247068,24.459536 z"
        id="path1" />
   </g>
 </svg>
