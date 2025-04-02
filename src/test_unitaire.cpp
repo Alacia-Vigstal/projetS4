@@ -8,7 +8,7 @@
 // ======================= Booléens de contrôle global ====================
 volatile bool emergencyStop = false;
 volatile bool isPaused = false;
-volatile bool isStarted = false;
+volatile bool isStarted = true;
 
 // ======================= INTERRUPT HANDLER ==============================
 void handleEmergencyStop() {
@@ -59,90 +59,20 @@ MultiStepper multiStepper;
 // ======================= CONFIGURATION DES PARAMETRES =======================
 #define PAS_PAR_MM_X   80
 #define PAS_PAR_MM_Y   80
-#define PAS_PAR_MM_Z   400
+#define PAS_PAR_MM_Z   25
 #define VITESSE_MAX    3000
+#define VITESSE_COUPE  1500
+#define VITESSE_HOME   1000
 #define ACCELERATION   3000
 #define PAS_PAR_DEGREE 10
 #define ERREUR_MAX_Y   10
 
-// ======================= HOMING FUNCTION ====================================
-void homeAxes() {
-    Serial.println("Homing X, Y, Z et ZRot...");
-
-    // Move X towards MIN limit switch
-    moteurDeplacementX.setSpeed(500);  // Move in negative direction
-    while (digitalRead(LIMIT_X_MIN) != LOW) {
-        if (digitalRead(LIMIT_X_MIN) == LOW) Serial.println("X Min Switch Pressed!");
-        moteurDeplacementX.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurDeplacementX.stop();  
-    moteurDeplacementX.setCurrentPosition(0);  // Set home position
-    Serial.println("Homing X");
-
-    /*
-    // Homing Y avec arrêt indépendant des moteurs gauche/droite
-    moteurDeplacementY1.setSpeed(-500);
-    moteurDeplacementY2.setSpeed(-500);
-    bool y1Homed = false;
-    bool y2Homed = false;
-
-    while (!y1Homed || !y2Homed) {
-        if (!y1Homed) {
-            if (digitalRead(LIMIT_Y_MIN_L) == HIGH) {
-                moteurDeplacementY1.runSpeed();
-                delayMicroseconds(100); // Ajoute un petit délai
-            } else {
-                moteurDeplacementY1.stop();  // Stoppe immédiatement
-                moteurDeplacementY1.setCurrentPosition(0);
-                y1Homed = true;
-            }
-        }
-
-        if (!y2Homed) {
-            if (digitalRead(LIMIT_Y_MIN_R) == HIGH) {
-                moteurDeplacementY2.runSpeed();
-                delayMicroseconds(100); // Ajoute un petit délai
-            } else {
-                moteurDeplacementY2.stop();  // Stoppe immédiatement
-                moteurDeplacementY2.setCurrentPosition(0);
-                y2Homed = true;
-            }
-        }
-    }
-    Serial.println("Homing Y");
-
-    // Move Z towards MIN limit switch
-    moteurHauteurOutil.setSpeed(500);
-    while (digitalRead(LIMIT_Z_MAX) == HIGH) {
-        moteurHauteurOutil.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurHauteurOutil.stop();
-    moteurHauteurOutil.setCurrentPosition(0);
-    Serial.println("Homing Z");
-
-    // Move ZRot towards MIN limit switch
-    moteurRotationOutil.setSpeed(-500);
-    while (digitalRead(LIMIT_ZRot) == HIGH) {
-        moteurRotationOutil.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurRotationOutil.stop();
-    moteurRotationOutil.setCurrentPosition(0);
-    Serial.println("Homing ZRot");
-    */
-
-    Serial.println("Homing terminé !");
-}
-
 // ======================= STOCKAGE DU G-CODE ==========================
 std::vector<String> gcode_command = {
-        "G0 X0 Y0 Z0 ZRot0",
-        "G0 X100 Y0 Z10 ZRot90",
-        "G0 X100 Y100 Z0 ZRot180",
-        "G0 X0 Y100 Z10 ZRot90",
-        "G0 X0 Y0 Z0 ZRot0",
+        "G1 X36.5658 Y253.5164 Z0 Zrot-90.0000",
+        "G1 X60.0370 Y253.5164 Z0 Zrot0.0000",
+        "G1 X59.7900 Y229.0568 Z0 Zrot90.5787",
+        "G1 X36.5658 Y228.5627 Z0 Zrot178.7811"
     };
 
 // ======================= STOCKAGE DU G-CODE ==========================
@@ -153,9 +83,6 @@ void storeGCode(const char* gcode) {
 
 // ======================= MOUVEMENT DES MOTEURS =======================
 void moveXYZ(float x, float y, float z, float zRot) {
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-
     long stepsX = x * PAS_PAR_MM_X;
     long stepsY = y * PAS_PAR_MM_Y;
     long stepsZ = z * PAS_PAR_MM_Z;
@@ -168,7 +95,6 @@ void moveXYZ(float x, float y, float z, float zRot) {
 
     Serial.println("Commande reçue : X=" + String(x) + " Y=" + String(y) + " Z=" + String(z) + " ZRot=" + String(zRot));
     Serial.println("Steps X: " + String(stepsX) + " Y: " + String(stepsY));
-    moteurDeplacementY2.moveTo(stepsY);
     multiStepper.moveTo(positions);
 
     while (
@@ -198,10 +124,70 @@ void moveXYZ(float x, float y, float z, float zRot) {
             Serial.println("Reprise du mouvement.");
         }
 
-        moteurDeplacementY2.moveTo(moteurDeplacementY1.currentPosition());
-        moteurDeplacementY2.run();
         multiStepper.run();
     }
+}
+
+// ======================= HOMING FUNCTION ====================================
+void homeAxes() {
+    Serial.println("Homing X, Y, Z et ZRot...");
+
+    // Move X towards MIN limit switch
+    moteurDeplacementX.setSpeed(-VITESSE_HOME);  // Move in negative direction
+    while (digitalRead(LIMIT_X_MIN) != HIGH) {
+        if (digitalRead(LIMIT_X_MIN) == HIGH) Serial.println("X Min Switch Pressed!");
+        moteurDeplacementX.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
+    }
+    moteurDeplacementX.stop();  
+    moteurDeplacementX.setCurrentPosition(0);  // Set home position
+    Serial.println("Homing X");
+
+    // Move Y towards MIN limit switch
+    moteurDeplacementY1.setSpeed(VITESSE_HOME);  // Move in negative direction
+    moteurDeplacementY2.setSpeed(VITESSE_HOME);
+    while (digitalRead(LIMIT_Y_MIN_R) != HIGH) {
+        if (digitalRead(LIMIT_Y_MIN_R) == HIGH) Serial.println("Y Min Switch Pressed!");
+        moteurDeplacementY1.runSpeed();
+        moteurDeplacementY2.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
+    }
+    moteurDeplacementY1.stop(); 
+    moteurDeplacementY2.stop();  
+    moteurDeplacementY1.setCurrentPosition(0);
+    moteurDeplacementY2.setCurrentPosition(0);  // Set home position
+    Serial.println("Homing Y");
+
+    // Move Z towards MIN limit switch
+    moteurHauteurOutil.setSpeed(VITESSE_HOME);
+    while (digitalRead(LIMIT_Z_MAX) != HIGH) {
+        moteurHauteurOutil.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
+    }
+    moteurHauteurOutil.stop();
+    moteurHauteurOutil.setCurrentPosition(40*PAS_PAR_MM_Z);
+    Serial.println("Homing Z");
+
+    // Move ZRot towards MIN limit switch
+    moteurRotationOutil.setSpeed(-VITESSE_HOME);
+    while (digitalRead(LIMIT_ZRot) != HIGH) {
+        moteurRotationOutil.runSpeed();
+        delayMicroseconds(100); // Ajoute un petit délai
+    }
+    moteurRotationOutil.stop();
+    moteurRotationOutil.setCurrentPosition(0);
+    Serial.println("Homing ZRot");
+
+    Serial.println("Homing terminé !");
+
+    // Position centrale après homing
+    moveXYZ(175, -175, 10, 0);
+    moteurDeplacementX.setCurrentPosition(0);
+    moteurDeplacementY1.setCurrentPosition(0);
+    moteurDeplacementY2.setCurrentPosition(0);
+    moteurHauteurOutil.setCurrentPosition(0);
+    moteurRotationOutil.setCurrentPosition(0);
+    Serial.println("Positionné au centre après homing.");
 }
 
 // ======================= EXÉCUTION DU G-CODE =======================
@@ -211,6 +197,32 @@ void executeGCodeCommand(const String& command) {
     char gcode[20];
     int readCount = sscanf(command.c_str(), "G%f X%f Y%f Z%f ZRot%f", &g, &x, &y, &z, &zRot);
 
+    // Ignore les lignes qui ne commencent pas par G00 ou G01
+    //if (!(command.startsWith("G00") || command.startsWith("G01"))) {
+    //    Serial.println("Commande ignorée : " + command);
+    //    return;
+    //}
+
+    //Serial.println("Commande acceptée : " + command);
+
+    // === Appliquer les vitesses selon G00 ou G01 ===
+    //if ((int)g == 0) {  // G00 : déplacement rapide
+    //    Serial.println("Commande G00 (rapide)");
+    //    moteurDeplacementX.setMaxSpeed(VITESSE_MAX);
+    //    moteurDeplacementY1.setMaxSpeed(VITESSE_MAX);
+    //    moteurDeplacementY2.setMaxSpeed(VITESSE_MAX);
+    //    moteurRotationOutil.setMaxSpeed(VITESSE_MAX);
+    //    moteurHauteurOutil.setMaxSpeed(VITESSE_MAX);
+   // } else if ((int)g == 1) {  // G01 : déplacement contrôlé
+     //   Serial.println("Commande G01 (contrôlée)");
+      //  moteurDeplacementX.setMaxSpeed(VITESSE_COUPE);
+     //   moteurDeplacementY1.setMaxSpeed(VITESSE_COUPE);
+    //    moteurDeplacementY2.setMaxSpeed(VITESSE_COUPE);
+     //   moteurRotationOutil.setMaxSpeed(VITESSE_COUPE);
+     //   moteurHauteurOutil.setMaxSpeed(VITESSE_COUPE);
+    //} else {
+      //  Serial.println("Commande ignorée (pas G00 ni G01) : " + command);
+    //}
     // Exécuter le mouvement en fonction du G-code
     moveXYZ(x, y, z, zRot);
 }
@@ -301,17 +313,20 @@ void setup() {
     Serial.println("MultiStepper initialisé");
     multiStepper.addStepper(moteurDeplacementX);
     multiStepper.addStepper(moteurDeplacementY1);
+    multiStepper.addStepper(moteurDeplacementY2);
     multiStepper.addStepper(moteurHauteurOutil);
     multiStepper.addStepper(moteurRotationOutil);
 
-    Serial.println("Fin du setup");
     homeAxes(); // Tu peux l’activer si tu veux faire un homing au départ
+
+    Serial.println("Fin du setup");
 }
 
 // ======================= Loop =======================
 void loop() {
-    printLimitSwitchStates();
-/*
+
+    //printLimitSwitchStates();
+
     if (!isStarted) {
         Serial.println("En attente du démarrage...");
         while (!isStarted) {
@@ -339,6 +354,6 @@ void loop() {
         Serial.println("Toutes les commandes G-code ont été exécutées.");
         gcodeIndex = 0;
     }
-*/
+
     yield();
 }
