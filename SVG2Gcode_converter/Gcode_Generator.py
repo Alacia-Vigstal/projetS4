@@ -719,7 +719,7 @@ def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
         print(" Z0", end='')
     
     if Zrot is not None:
-        print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
+        print(" Zrot%s" % coordToStr(Zrot), end='')
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
@@ -729,7 +729,7 @@ def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
 
     if ZrotList is not None:
         ZrotStr = ",".join(str(coordToStr(angle)) for angle in ZrotList)
-        print(" AL:%s" % ZrotStr, end='')
+        print(" ZrotL:%s" % ZrotStr, end='')
 
     print()
 
@@ -761,13 +761,17 @@ def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
         print(" Z0", end='')
     
     if Zrot is not None:
-        print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
+        print(" Zrot%s" % coordToStr(Zrot), end='')
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
 
     if j is not None: 
         print(" J%s" % coordToStr(j), end = '')
+
+    if ZrotList is not None:
+        ZrotStr = ",".join(str(coordToStr(angle)) for angle in ZrotList)
+        print(" ZrotL:%s" % ZrotStr, end='')
 
     print()
 
