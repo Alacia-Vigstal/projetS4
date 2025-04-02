@@ -504,8 +504,8 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
 
     # déplacement de l'outil vers la position de début de découpe
     start_x, start_y = SVG.xy_mm(path[0].start)
-    start_angle = computeOrientation(path[0], t = 0.0)
-    g0(x = start_x, y = start_y, Zrot = start_angle)
+    startAngle = computeOrientation(path[0], t = 0.0)
+    g0(x = start_x, y = start_y, Zrot = startAngle)
 
     comment('')
     #comment("Début de la découpe simple avec retrait lors de changements de direction")
@@ -529,7 +529,8 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
         if not (abs(angleDeg - 0)   <= ANGLE_TOLERANCE or abs(angleDeg - 180) <= ANGLE_TOLERANCE):
             toolUp()
             seg_x, seg_y = SVG.xy_mm(currentSegment.start)
-            g0(x = seg_x, y = seg_y)
+            nextAngle = computeOrientation(currentSegment, t = 0.0)
+            g0(x = seg_x, y = seg_y, Zrot = nextAngle)
 
             toolDown()
 
