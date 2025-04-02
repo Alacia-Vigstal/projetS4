@@ -434,15 +434,16 @@ def pathSegment2Gcode(SVG, segment):
     elif type(segment) is svgpathtools.path.Arc and (segment.radius.real == segment.radius.imag):
         (end_x, end_y) = SVG.xy_mm(segment.end)
         (center_x, center_y) = SVG.xy_mm(segment.center)
-        angle = computeOrientation(segment, t = 1.0)  # Orientation à la fin de l'arc
+        startAngle = computeOrientation(segment, t = 0.0)  # Orientation au début de l'arc
+        orientationList = computeOrientationList(segment, steps = 500)
 
         # Dans un SVG sweep == True -> clockwise et sweep == False -> counter-clockwise
         # Dans svgpathtools c'est l'inverse
         if segment.sweep:
-            g2(x = end_x, y = end_y, Zrot = angle, i = center_x, j = center_y)
+            g2(x = end_x, y = end_y, Zrot = startAngle, i = center_x, j = center_y, ZrotList = orientationList)
 
         else:
-            g3(x = end_x, y = end_y, Zrot = angle, i = center_x, j = center_y)
+            g3(x = end_x, y = end_y, Zrot = startAngle, i = center_x, j = center_y, ZrotList = orientationList)
 
     else:
         # Le segment n'es ni une ligne, ni un arc de cercle 
@@ -691,7 +692,7 @@ def g1(path = None, x = None, y = None, z = None, Zrot = None):
 
         print()
 
-def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None):
+def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList = None):
     global currentX
     global currentY
     global currentZ
@@ -726,10 +727,14 @@ def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None):
     if j is not None: 
         print(" J%s" % coordToStr(j), end = '')
 
+    if ZrotList is not None:
+        ZrotStr = ",".join(str(coordToStr(angle)) for angle in ZrotList)
+        print(" AL:%s" % ZrotStr, end='')
+
     print()
 
 
-def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None):
+def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList = None):
     global currentX
     global currentY
     global currentZ
@@ -782,3 +787,15 @@ def computeOrientation(segment, t = 1.0):
     angle = math.degrees(math.atan2(tangent.imag, tangent.real))
 
     return angle
+
+def computeOrientationList(segment, steps = 500):
+    """
+    Retourne une liste d'angles (en degrés) pour le segment à des positions t allant de 0 à 1.
+    """
+    orientationList = []
+
+    for k in range(steps + 1):
+        t = k / float(steps)
+        orientationList.append(computeOrientation(segment, t))
+
+    return orientationList
