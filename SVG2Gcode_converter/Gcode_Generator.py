@@ -426,11 +426,11 @@ def handleIntersections(pathList):
 
     return paths
 
-def pathSegment2Gcode(SVG, segment, Z = None):
+def pathSegment2Gcode(SVG, segment):
     if type(segment) == svgpathtools.path.Line:
         (start_x, start_y) = SVG.xy_mm(segment.start)
         (end_x, end_y) = SVG.xy_mm(segment.end)
-        g1(x = end_x, y = end_y, z = Z)
+        g1(x = end_x, y = end_y)
         
     elif type(segment) is svgpathtools.path.Arc and (segment.radius.real == segment.radius.imag):
         (end_x, end_y) = SVG.xy_mm(segment.end)
@@ -439,10 +439,10 @@ def pathSegment2Gcode(SVG, segment, Z = None):
         # Dans un SVG sweep == True -> clockwise et sweep == False -> counter-clockwise
         # Dans svgpathtools c'est l'inverse
         if segment.sweep:
-            g2(x = end_x, y = end_y, z = Z, i = center_x, j = center_y)
+            g2(x = end_x, y = end_y, i = center_x, j = center_y)
 
         else:
-            g3(x = end_x, y = end_y, z = Z, i = center_x, j = center_y)
+            g3(x = end_x, y = end_y, i = center_x, j = center_y)
 
     else:
         # Le segment n'es ni une ligne, ni un arc de cercle 
@@ -457,6 +457,7 @@ def pathSegment2Gcode(SVG, segment, Z = None):
             g1(x = end_x, y = end_y)
 
 # Z False veut dire up (pas en contact avec le tapis de découpe)
+# Enlève toute mention à z et remplace les g0-g1 en z par toolUp et toolDown
 def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     """
     Output le Gcode pour les paths d'un SVG donné.
@@ -507,7 +508,7 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     prevDirection = unitDirectionVector(path[0])
 
     # Coupe du premier segment
-    pathSegment2Gcode(SVG, path[0], z = zCutDepth)
+    pathSegment2Gcode(SVG, path[0])
 
     # Coupe des segments suivants avec retrait lors de changements de direction
     for i in range(1, len(path)):
@@ -517,13 +518,13 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
         angleDeg = angleBetween(prevDirection, currentDirection)
 
         if not (abs(angleDeg - 0)   <= ANGLE_TOLERANCE or abs(angleDeg - 180) <= ANGLE_TOLERANCE):
-            g1(z = zRapid)
+            toolUp()
             seg_x, seg_y = SVG.xy_mm(currentSegment.start)
             g0(x = seg_x, y = seg_y)
 
-            g1(z = zCutDepth)
+            toolDown()
 
-        pathSegment2Gcode(SVG, currentSegment, z = zCutDepth)
+        pathSegment2Gcode(SVG, currentSegment)
         prevDirection = currentDirection
 
     comment("Fin de la découpe")
@@ -562,9 +563,15 @@ def relativeArcCenters():
 
 def toolUp():
     absolute()
-    print("G53 G0 Z0")
     global currentZ 
     currentZ = False
+    g1(z = currentZ)
+
+def toolDown():
+    absolute()
+    global currentZ
+    currentZ = True
+    g1(z = currentZ)
 
 def presentationPosition():
     imperial()
