@@ -7,10 +7,11 @@
    viewBox="0 0 210 297"
    version="1.1"
    id="svg1"
-   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
    sodipodi:docname="drawingtest.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <sodipodi:namedview
@@ -23,24 +24,42 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="0.66546717"
-     inkscape:cx="396.71378"
-     inkscape:cy="561.25984"
-     inkscape:window-width="1920"
-     inkscape:window-height="986"
-     inkscape:window-x="-11"
-     inkscape:window-y="-11"
-     inkscape:window-maximized="1"
+     inkscape:zoom="1.0709014"
+     inkscape:cx="397.32885"
+     inkscape:cy="275.46888"
+     inkscape:window-width="1424"
+     inkscape:window-height="847"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
      inkscape:current-layer="layer1" />
   <defs
-     id="defs1" />
+     id="defs1">
+    <linearGradient
+       id="swatch1"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#swatch1"
+       id="linearGradient1"
+       x1="11.046081"
+       y1="60.629783"
+       x2="144.37129"
+       y2="60.629783"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:none;stroke-width:0.264583;stroke:#000000;stroke-opacity:1"
-       d="M 5.5662649,7.9518072 H 69.180722 l 0.39759,50.4939758 z"
+       style="fill:none;stroke-width:0.265;stroke-dasharray:none;stroke:url(#linearGradient1)"
+       d="m 19.024083,55.095721 26.188999,-24.21247 -0.247068,0.247068 c 0,0 21.247679,19.518214 20.012347,19.76528 -1.235329,0.247065 -1.235329,0.247065 -1.235329,0.247065 0,0 24.706601,-28.906723 42.742418,-29.894987 18.03582,-0.988264 35.33044,12.847433 37.8011,29.894987 2.47066,17.047556 -49.907332,48.919076 -49.907332,48.919076 L 60.531173,57.072249 c 0,0 -54.1074567,41.012959 -49.166136,26.683131 4.94132,-14.329831 4.94132,-14.329831 4.94132,-14.329831 z"
        id="path1" />
   </g>
 </svg>
