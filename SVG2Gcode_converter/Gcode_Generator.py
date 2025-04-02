@@ -635,11 +635,11 @@ def g0(path = None, x = None, y = None, z = None):
 
         if z:
             currentZ = True
-            print(" Z est vrai alors contact avec cutting mat", end='')
+            print(" Z1", end='')
         
         if not z:
             currentZ = False
-            print(" Z est faux alors pas en contact avec cutting mat", end='')
+            print(" Z0", end='')
 
         print()
 
@@ -668,11 +668,11 @@ def g1(path = None, x = None, y = None, z = None):
         
         if z:
             currentZ = True
-            print(" Z est vrai alors contact avec cutting mat", end='')
+            print(" Z1", end='')
         
         if not z:
             currentZ = False
-            print(" Z est faux alors pas en contact avec cutting mat", end='')
+            print(" Z0", end='')
 
         print()
 
@@ -696,11 +696,11 @@ def g2(x = None, y = None, z = None, i = None, j = None):
     
     if z:
         currentZ = True
-        print(" Z est vrai alors contact avec cutting mat", end='')
+        print(" Z1", end='')
         
     if not z:
         currentZ = False
-        print(" Z est faux alors pas en contact avec cutting mat", end='')
+        print(" Z0", end='')
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
@@ -731,11 +731,11 @@ def g3(x = None, y = None, z = None, i = None, j = None):
     
     if z:
         currentZ = True
-        print(" Z est vrai alors contact avec cutting mat", end='')
+        print(" Z1", end='')
         
     if not z:
         currentZ = False
-        print(" Z est faux alors pas en contact avec cutting mat", end='')
+        print(" Z0", end='')
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
