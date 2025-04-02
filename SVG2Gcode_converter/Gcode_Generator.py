@@ -133,7 +133,6 @@ class SVG:
         self.GcodeOrigin = origin
         print("Gcode origin: ", origin, file = sys.stderr)
 
-# correction de problème @ 138
         paths, attributes, svgAttributes = svgpathtools.svg2paths2(self.SVGFileName)
         self.SVGAttributes = svgAttributes  # Use this in place of self.SVGFile.root.attrib
         self.SVGPaths = []
@@ -141,7 +140,6 @@ class SVG:
         for path in paths:
             for continuous_path in path.continuous_subpaths():
                 self.SVGPaths.append(continuous_path)
-# fin correction de problème @ 138
 
         """
         viewport definition
@@ -430,19 +428,21 @@ def pathSegment2Gcode(SVG, segment):
     if type(segment) == svgpathtools.path.Line:
         (start_x, start_y) = SVG.xy_mm(segment.start)
         (end_x, end_y) = SVG.xy_mm(segment.end)
-        g1(x = end_x, y = end_y)
+        angle = computeOrientation(segment, t = 1.0)  # Calcul de l'orientation en fin de segment
+        g1(x = end_x, y = end_y, Zrot = angle)
         
     elif type(segment) is svgpathtools.path.Arc and (segment.radius.real == segment.radius.imag):
         (end_x, end_y) = SVG.xy_mm(segment.end)
         (center_x, center_y) = SVG.xy_mm(segment.center)
+        angle = computeOrientation(segment, t = 1.0)  # Orientation à la fin de l'arc
 
         # Dans un SVG sweep == True -> clockwise et sweep == False -> counter-clockwise
         # Dans svgpathtools c'est l'inverse
         if segment.sweep:
-            g2(x = end_x, y = end_y, i = center_x, j = center_y)
+            g2(x = end_x, y = end_y, Zrot = angle, i = center_x, j = center_y)
 
         else:
-            g3(x = end_x, y = end_y, i = center_x, j = center_y)
+            g3(x = end_x, y = end_y, Zrot = angle, i = center_x, j = center_y)
 
     else:
         # Le segment n'es ni une ligne, ni un arc de cercle 
@@ -454,10 +454,15 @@ def pathSegment2Gcode(SVG, segment):
             t = k / float(steps)
             end = segment.point(t)
             (end_x, end_y) = SVG.xy_mm(end)
-            g1(x = end_x, y = end_y)
 
-# Z False veut dire up (pas en contact avec le tapis de découpe)
-# Enlève toute mention à z et remplace les g0-g1 en z par toolUp et toolDown
+            if k > 0:
+                angle = computeOrientation(segment, t = t)
+            else:
+                angle = computeOrientation(segment, t = t + 1e-5)
+
+            g1(x = end_x, y = end_y, Zrot = angle)
+
+# Z0 veut dire up (pas en contact avec le tapis de découpe)
 def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     """
     Output le Gcode pour les paths d'un SVG donné.
@@ -498,9 +503,11 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
 
     # déplacement de l'outil vers la position de début de découpe
     start_x, start_y = SVG.xy_mm(path[0].start)
-    g0(x = start_x, y = start_y)
+    start_angle = computeOrientation(path[0], t = 0.0)
+    g0(x = start_x, y = start_y, Zrot = start_angle)
 
-    comment("Début de la découpe simple avec retrait lors de changements de direction")
+    comment('')
+    #comment("Début de la découpe simple avec retrait lors de changements de direction")
 
     # Descente de l'outil
     g1(z = zCutDepth)
@@ -511,6 +518,7 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     pathSegment2Gcode(SVG, path[0])
 
     # Coupe des segments suivants avec retrait lors de changements de direction
+    # clean up cette section pour match ce qu'on veut comme gcode de sortie
     for i in range(1, len(path)):
         currentSegment = path[i]
         currentDirection = unitDirectionVector(currentSegment)
@@ -562,19 +570,20 @@ def relativeArcCenters():
     print("G91.1")
 
 def toolUp():
-    absolute()
+    comment('')
     global currentZ 
     currentZ = False
     g1(z = currentZ)
 
 def toolDown():
-    absolute()
+    comment('')
     global currentZ
     currentZ = True
     g1(z = currentZ)
 
 def presentationPosition():
     imperial()
+    absolute()
     toolUp()
 
     print("G53 G0 X9 Y12")
@@ -608,7 +617,7 @@ def coordToStr(val=None):
 
     return "%.4f" % val
 
-def g0(path = None, x = None, y = None, z = None):
+def g0(path = None, x = None, y = None, z = None, Zrot = None):
     global currentX
     global currentY
     global currentZ
@@ -640,10 +649,13 @@ def g0(path = None, x = None, y = None, z = None):
         if not z:
             currentZ = False
             print(" Z0", end='')
-
+        
+        if Zrot is not None:
+            print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
+        
         print()
 
-def g1(path = None, x = None, y = None, z = None):
+def g1(path = None, x = None, y = None, z = None, Zrot = None):
     global currentX
     global currentY
     global currentZ
@@ -673,10 +685,13 @@ def g1(path = None, x = None, y = None, z = None):
         if not z:
             currentZ = False
             print(" Z0", end='')
+        
+        if Zrot is not None:
+            print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
 
         print()
 
-def g2(x = None, y = None, z = None, i = None, j = None):
+def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None):
     global currentX
     global currentY
     global currentZ
@@ -701,6 +716,9 @@ def g2(x = None, y = None, z = None, i = None, j = None):
     if not z:
         currentZ = False
         print(" Z0", end='')
+    
+    if Zrot is not None:
+        print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
@@ -711,7 +729,7 @@ def g2(x = None, y = None, z = None, i = None, j = None):
     print()
 
 
-def g3(x = None, y = None, z = None, i = None, j = None):
+def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None):
     global currentX
     global currentY
     global currentZ
@@ -736,6 +754,9 @@ def g3(x = None, y = None, z = None, i = None, j = None):
     if not z:
         currentZ = False
         print(" Z0", end='')
+    
+    if Zrot is not None:
+        print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
 
     if i is not None: 
         print(" I%s" % coordToStr(i), end = '')
@@ -752,3 +773,12 @@ def okToRound(a, b):
     """
     
     return abs(a - b) < 1e-6
+
+def computeOrientation(segment, t = 1.0):
+    """
+    Calcul l'orientation de l'outil pour le prochain segment à découper
+    """
+    tangent = segment.derivative(t)  # tangent est un nombre complexe
+    angle = math.degrees(math.atan2(tangent.imag, tangent.real))
+
+    return angle
