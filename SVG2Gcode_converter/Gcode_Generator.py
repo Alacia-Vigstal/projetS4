@@ -242,7 +242,7 @@ class SVG:
         
         # Dans un SVG y est positif vers le bas, mais en Gcode c'est positif vers le haut
         if self.GcodeOrigin == self.GCODE_ORIGIN_IS_SVG_ORIGIN:
-            out = -y * self.scaleY
+            out = y * self.scaleY # essaie de modif pour régler le problème de frame (avant, -y)
 
         elif self.GcodeOrigin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
             out = (self.viewBoxHeight - (y - self.viewBoxY)) * self.scaleY
