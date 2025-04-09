@@ -32,6 +32,8 @@ int gcodeIndex = 0;
 // Fonction pour lire la valeur de la cellule de charge, retour en kg [0.9122, 10.65]
 float readLoadCell() {
     int potValue = analogRead(LOAD_CELL_PIN);
+    Serial.print("Raw ADC: "); Serial.print(potValue);
+    Serial.print(" | Converted: "); Serial.println(readLoadCell(), 3);
     return(0.9122*exp(0.0006*potValue));
 }
 
@@ -78,7 +80,6 @@ void moveXYZ(float x, float y, float z, float zRot) {
 
 
     Serial.println("Commande reçue : X=" + String(x) + " Y=" + String(y) + " Z=" + String(z) + " ZRot=" + String(zRot));
-    Serial.println("Steps X: " + String(stepsX) + " Y: " + String(stepsY));
     multiStepper.moveTo(positions);
 
     while (
@@ -110,12 +111,6 @@ void moveXYZ(float x, float y, float z, float zRot) {
 
         // Avancer les moteurs
         multiStepper.run();
-
-        //moteurDeplacementX.run();
-        //moteurDeplacementY1.run();
-        //moteurDeplacementY2.run();
-        //moteurHauteurOutil.run();
-        //moteurRotationOutil.run();
     }
 }
 
@@ -274,12 +269,15 @@ void processSerialCommand(String input) {
         isStarted = true;
     
         Serial.println("=== [RUN_GCODE] ===");
+        Serial.println("Homing automatique avant l'exécution du G-code...");
+        homeAxes();
+        
         Serial.println("Exécution du G-code redémarrée (via série).");
         Serial.println("Nombre de commandes : " + String(gcode_command.size()));
         Serial.println("Index remis à zéro.");
         Serial.println("====================");
         return;
-    }
+    }    
 
     if (cmd == "STATUS") {
         Serial.println("--- État du système ---");
@@ -451,8 +449,6 @@ void setup() {
 // ======================= Loop =======================
 void loop() {
 
-    //printLimitSwitchStates();
-
     if (Serial.available()) {
         String incoming = Serial.readStringUntil('\n');
         processSerialCommand(incoming);
@@ -485,6 +481,12 @@ void loop() {
     }
 
     checkLimitSwitches();
+
+    float poids = readLoadCell();
+    Serial.print("Poids détecté : ");
+    Serial.print(poids, 3);  // Affiche avec 3 décimales
+    Serial.println(" kg");
+    delay(500);  // Lis toutes les 500 ms
 
     yield();
 }
