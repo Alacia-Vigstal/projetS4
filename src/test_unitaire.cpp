@@ -4,12 +4,13 @@
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <vector>
+#include <math.h>
 #include "data.hpp"
 
 // ======================= Booléens de contrôle global ====================
 volatile bool emergencyStop = false;
 volatile bool isPaused = false;
-volatile bool isStarted = true;
+volatile bool isStarted = false;
 bool gcodeFinished = false;
 
 //std::vector<String> gcode_command = {};
@@ -26,7 +27,13 @@ int gcodeIndex = 0;
 #define LIMIT_ZRot     17
 
 // ======================= Load Cell ======================================
-#define Pression       12
+#define LOAD_CELL_PIN  12
+
+// Fonction pour lire la valeur de la cellule de charge, retour en kg [0.9122, 10.65]
+float readLoadCell() {
+    int potValue = analogRead(LOAD_CELL_PIN);
+    return(0.9122*exp(0.0006*potValue));
+}
 
 // ======================= CONFIGURATION DES MOTEURS =======================
 #define STEP_X  18
@@ -51,8 +58,8 @@ MultiStepper multiStepper;
 #define PAS_PAR_MM_X   80
 #define PAS_PAR_MM_Y   80
 #define PAS_PAR_MM_Z   25
-#define VITESSE_MAX    3000
-#define VITESSE_COUPE  1500
+#define VITESSE_MAX    2000
+#define VITESSE_COUPE  1200
 #define VITESSE_HOME   1000
 #define ACCELERATION   3000
 #define PAS_PAR_DEGREE 10
@@ -67,7 +74,7 @@ void moveXYZ(float x, float y, float z, float zRot) {
 
     // Tableau contenant les positions cibles pour les moteurs gérés par MultiStepper.
     // L'ordre des valeurs doit correspondre à l'ordre des moteurs ajoutés à multiStepper.
-    long positions[4] = { stepsX, stepsY, stepsZ, stepsRotationOutil };
+    long positions[5] = { stepsX, stepsY, stepsY, stepsZ, stepsRotationOutil };
 
 
     Serial.println("Commande reçue : X=" + String(x) + " Y=" + String(y) + " Z=" + String(z) + " ZRot=" + String(zRot));
@@ -101,7 +108,14 @@ void moveXYZ(float x, float y, float z, float zRot) {
             Serial.println("Reprise du mouvement.");
         }
 
+        // Avancer les moteurs
         multiStepper.run();
+
+        //moteurDeplacementX.run();
+        //moteurDeplacementY1.run();
+        //moteurDeplacementY2.run();
+        //moteurHauteurOutil.run();
+        //moteurRotationOutil.run();
     }
 }
 
@@ -163,10 +177,28 @@ void executeGCodeCommand(const String& command) {
     // Variables pour extraire les valeurs du G-code
     float g = 0, x = 0, y = 0, z = 0, zRot = 0;
     char gcode[20];
-    int readCount = sscanf(command.c_str(), "G%f X%f Y%f Z%f ZRot%f", &g, &x, &y, &z, &zRot);
+    int readCount = sscanf(command.c_str(), "G%f X%f Y%f Z%f Zrot%f", &g, &x, &y, &z, &zRot);
+
+    if ((int)g == 0) {  // G00 : rapide
+        Serial.println("G00 → vitesse max");
+        moteurDeplacementX.setMaxSpeed(VITESSE_MAX);
+        moteurDeplacementY1.setMaxSpeed(VITESSE_MAX);
+        moteurDeplacementY2.setMaxSpeed(VITESSE_MAX);
+        moteurHauteurOutil.setMaxSpeed(VITESSE_MAX);
+        moteurRotationOutil.setMaxSpeed(VITESSE_MAX);
+    } 
+    else if ((int)g == 1) {  // G01 : coupe
+        Serial.println("G01 → vitesse de coupe");
+        moteurDeplacementX.setMaxSpeed(VITESSE_COUPE);
+        moteurDeplacementY1.setMaxSpeed(VITESSE_COUPE);
+        moteurDeplacementY2.setMaxSpeed(VITESSE_COUPE);
+        moteurHauteurOutil.setMaxSpeed(VITESSE_COUPE);
+        moteurRotationOutil.setMaxSpeed(VITESSE_COUPE);
+    }
 
     // Exécuter le mouvement en fonction du G-code
     moveXYZ(x, y, z, zRot);
+    Serial.println("Fin du moveXYZ");
     delay(1000);
 }
 
@@ -273,17 +305,17 @@ void processSerialCommand(String input) {
     // === Commandes de mouvement ===
     bool moved = false;
 
-    if (cmd == "X_LEFT") {
+    if (cmd == "X_MOINS") {
         moteurDeplacementX.move(-PAS_PAR_MM_X * stepValue);
         moved = true;
-    } else if (cmd == "X_RIGHT") {
+    } else if (cmd == "X_PLUS") {
         moteurDeplacementX.move(PAS_PAR_MM_X * stepValue);
         moved = true;
-    } else if (cmd == "Y_BACK") {
+    } else if (cmd == "Y_PLUS") {
         moteurDeplacementY1.move(-PAS_PAR_MM_Y * stepValue);
         moteurDeplacementY2.move(-PAS_PAR_MM_Y * stepValue);
         moved = true;
-    } else if (cmd == "Y_FORWARD") {
+    } else if (cmd == "Y_MOINS") {
         moteurDeplacementY1.move(PAS_PAR_MM_Y * stepValue);
         moteurDeplacementY2.move(PAS_PAR_MM_Y * stepValue);
         moved = true;
@@ -293,10 +325,10 @@ void processSerialCommand(String input) {
     } else if (cmd == "Z_DOWN") {
         moteurHauteurOutil.move(-PAS_PAR_MM_Z * stepValue);
         moved = true;
-    } else if (cmd == "ZROT_LEFT") {
+    } else if (cmd == "ZROT_CLOCK") {
         moteurRotationOutil.move(-PAS_PAR_DEGREE * stepValue);
         moved = true;
-    } else if (cmd == "ZROT_RIGHT") {
+    } else if (cmd == "ZROT_C_CLOCK") {
         moteurRotationOutil.move(PAS_PAR_DEGREE * stepValue);
         moved = true;
     } else if (cmd == "Z_ZERO") {
@@ -329,43 +361,45 @@ void processSerialCommand(String input) {
 
 // ======================= printLimitSwitchStates ====================
 void printLimitSwitchStates() {
-    if (digitalRead(LIMIT_X_MIN) == LOW) Serial.println("X Min Switch Pressed!");
-    if (digitalRead(LIMIT_X_MAX) == LOW) Serial.println("X Max Switch Pressed!");
-    if (digitalRead(LIMIT_Y_MIN_L) == LOW) Serial.println("Y Min L Switch Pressed!");
-    if (digitalRead(LIMIT_Y_MIN_R) == LOW) Serial.println("Y Min R Switch Pressed!");
-    if (digitalRead(LIMIT_Y_MAX_L) == LOW) Serial.println("Y Max L Switch Pressed!");
-    if (digitalRead(LIMIT_Y_MAX_R) == LOW) Serial.println("Y Max R Switch Pressed!");
-    if (digitalRead(LIMIT_Z_MAX) == LOW) Serial.println("Z Max Switch Pressed!");
-    if (digitalRead(LIMIT_ZRot) == LOW) Serial.println("ZRot Switch Pressed!");
+    if (digitalRead(LIMIT_X_MIN) == HIGH) Serial.println("X Min Switch Pressed!");
+    if (digitalRead(LIMIT_X_MAX) == HIGH) Serial.println("X Max Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MIN_L) == HIGH) Serial.println("Y Min L Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MIN_R) == HIGH) Serial.println("Y Min R Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MAX_L) == HIGH) Serial.println("Y Max L Switch Pressed!");
+    if (digitalRead(LIMIT_Y_MAX_R) == HIGH) Serial.println("Y Max R Switch Pressed!");
+    if (digitalRead(LIMIT_Z_MAX) == HIGH) Serial.println("Z Max Switch Pressed!");
+    if (digitalRead(LIMIT_ZRot) == HIGH) Serial.println("ZRot Switch Pressed!");
 }
 
 void checkLimitSwitches() {
     // Arrêts d'urgence
-    if (digitalRead(LIMIT_X_MIN) == LOW) {
+    printLimitSwitchStates();
+
+    if (digitalRead(LIMIT_X_MIN) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur X_MIN activé");
     }
-    else if (digitalRead(LIMIT_X_MAX) == LOW) {
+    else if (digitalRead(LIMIT_X_MAX) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur X_MAX activé");
     }
-    else if (digitalRead(LIMIT_Y_MIN_L) == LOW) {
+    else if (digitalRead(LIMIT_Y_MIN_L) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur Y_MIN_L activé");
     }
-    else if (digitalRead(LIMIT_Y_MIN_R) == LOW) {
+    else if (digitalRead(LIMIT_Y_MIN_R) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur Y_MIN_R activé");
     }
-    else if (digitalRead(LIMIT_Y_MAX_L) == LOW) {
+    else if (digitalRead(LIMIT_Y_MAX_L) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur Y_MAX_L activé");
     }
-    else if (digitalRead(LIMIT_Y_MAX_R) == LOW) {
+    else if (digitalRead(LIMIT_Y_MAX_R) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur Y_MAX_R activé");
     }
-    else if (digitalRead(LIMIT_Z_MAX) == LOW) {
+    else if (digitalRead(LIMIT_Z_MAX) == HIGH) {
         emergencyStop = true;
         Serial.println("Limiteur Z_MAX activé");
     }
@@ -419,8 +453,6 @@ void loop() {
 
     //printLimitSwitchStates();
 
-    moveXYZ(36,228,0,0);
-
     if (Serial.available()) {
         String incoming = Serial.readStringUntil('\n');
         processSerialCommand(incoming);
@@ -452,7 +484,7 @@ void loop() {
         // gcodeIndex = 0; ← tu peux le commenter si tu veux garder l'état pour relancer manuellement
     }
 
-    //checkLimitSwitches();
+    checkLimitSwitches();
 
     yield();
 }
