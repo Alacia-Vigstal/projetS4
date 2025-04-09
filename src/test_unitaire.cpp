@@ -4,19 +4,15 @@
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <vector>
+#include "data.hpp"
 
 // ======================= Booléens de contrôle global ====================
 volatile bool emergencyStop = false;
 volatile bool isPaused = false;
 volatile bool isStarted = true;
+bool gcodeFinished = false;
 
-// ======================= INTERRUPT HANDLER ==============================
-void handleEmergencyStop() {
-    emergencyStop = true;
-}
-
-// ======================= Déclaration du buffer G-code ===================
-std::vector<String> gcodeBuffer;
+//std::vector<String> gcode_command = {};
 int gcodeIndex = 0;
 
 // ======================= CONFIGURATION DES LIMIT SWITCH =================
@@ -31,11 +27,6 @@ int gcodeIndex = 0;
 
 // ======================= Load Cell ======================================
 #define Pression       12
-
-// ======================= Boutons ========================================
-#define PIN_RESET_URGENCE  36  // Choisis une pin libre (ex. GPIO15)
-#define PIN_PAUSE          35  // GPIO libre pour Pause
-#define PIN_START          34  // GPIO libre pour Start
 
 // ======================= CONFIGURATION DES MOTEURS =======================
 #define STEP_X  18
@@ -67,20 +58,6 @@ MultiStepper multiStepper;
 #define PAS_PAR_DEGREE 10
 #define ERREUR_MAX_Y   10
 
-// ======================= STOCKAGE DU G-CODE ==========================
-std::vector<String> gcode_command = {
-        "G1 X36.5658 Y253.5164 Z0 Zrot-90.0000",
-        "G1 X60.0370 Y253.5164 Z0 Zrot0.0000",
-        "G1 X59.7900 Y229.0568 Z0 Zrot90.5787",
-        "G1 X36.5658 Y228.5627 Z0 Zrot178.7811"
-    };
-
-// ======================= STOCKAGE DU G-CODE ==========================
-void storeGCode(const char* gcode) {
-    gcodeBuffer.push_back(String(gcode));
-    Serial.println(gcode);
-}
-
 // ======================= MOUVEMENT DES MOTEURS =======================
 void moveXYZ(float x, float y, float z, float zRot) {
     long stepsX = x * PAS_PAR_MM_X;
@@ -105,7 +82,7 @@ void moveXYZ(float x, float y, float z, float zRot) {
         moteurHauteurOutil.distanceToGo()
     ) {
         if (emergencyStop) {
-            Serial.println("Arrêt d'urgence déclenché !");
+            Serial.println("Arrêt d'urgence déclenché ! Appuyez sur le bouton RESET.");
             moteurDeplacementX.stop();
             moteurDeplacementY1.stop();
             moteurDeplacementY2.stop();
@@ -143,11 +120,11 @@ void homeAxes() {
     moteurDeplacementX.setCurrentPosition(0);  // Set home position
     Serial.println("Homing X");
 
-    // Move Y towards MIN limit switch
-    moteurDeplacementY1.setSpeed(VITESSE_HOME);  // Move in negative direction
-    moteurDeplacementY2.setSpeed(VITESSE_HOME);
-    while (digitalRead(LIMIT_Y_MIN_R) != HIGH) {
-        if (digitalRead(LIMIT_Y_MIN_R) == HIGH) Serial.println("Y Min Switch Pressed!");
+    // Move Y towards MAX limit switch
+    moteurDeplacementY1.setSpeed(-VITESSE_HOME);  // Move in negative direction
+    moteurDeplacementY2.setSpeed(-VITESSE_HOME);
+    while (digitalRead(LIMIT_Y_MAX_R) != HIGH) {
+        if (digitalRead(LIMIT_Y_MAX_R) == HIGH) Serial.println("Y Max Switch Pressed!");
         moteurDeplacementY1.runSpeed();
         moteurDeplacementY2.runSpeed();
         delayMicroseconds(100); // Ajoute un petit délai
@@ -165,7 +142,7 @@ void homeAxes() {
         delayMicroseconds(100); // Ajoute un petit délai
     }
     moteurHauteurOutil.stop();
-    moteurHauteurOutil.setCurrentPosition(40*PAS_PAR_MM_Z);
+    //moteurHauteurOutil.setCurrentPosition(100*PAS_PAR_MM_Z);
     Serial.println("Homing Z");
 
     // Move ZRot towards MIN limit switch
@@ -179,15 +156,6 @@ void homeAxes() {
     Serial.println("Homing ZRot");
 
     Serial.println("Homing terminé !");
-
-    // Position centrale après homing
-    moveXYZ(175, -175, 10, 0);
-    moteurDeplacementX.setCurrentPosition(0);
-    moteurDeplacementY1.setCurrentPosition(0);
-    moteurDeplacementY2.setCurrentPosition(0);
-    moteurHauteurOutil.setCurrentPosition(0);
-    moteurRotationOutil.setCurrentPosition(0);
-    Serial.println("Positionné au centre après homing.");
 }
 
 // ======================= EXÉCUTION DU G-CODE =======================
@@ -197,52 +165,166 @@ void executeGCodeCommand(const String& command) {
     char gcode[20];
     int readCount = sscanf(command.c_str(), "G%f X%f Y%f Z%f ZRot%f", &g, &x, &y, &z, &zRot);
 
-    // Ignore les lignes qui ne commencent pas par G00 ou G01
-    //if (!(command.startsWith("G00") || command.startsWith("G01"))) {
-    //    Serial.println("Commande ignorée : " + command);
-    //    return;
-    //}
-
-    //Serial.println("Commande acceptée : " + command);
-
-    // === Appliquer les vitesses selon G00 ou G01 ===
-    //if ((int)g == 0) {  // G00 : déplacement rapide
-    //    Serial.println("Commande G00 (rapide)");
-    //    moteurDeplacementX.setMaxSpeed(VITESSE_MAX);
-    //    moteurDeplacementY1.setMaxSpeed(VITESSE_MAX);
-    //    moteurDeplacementY2.setMaxSpeed(VITESSE_MAX);
-    //    moteurRotationOutil.setMaxSpeed(VITESSE_MAX);
-    //    moteurHauteurOutil.setMaxSpeed(VITESSE_MAX);
-   // } else if ((int)g == 1) {  // G01 : déplacement contrôlé
-     //   Serial.println("Commande G01 (contrôlée)");
-      //  moteurDeplacementX.setMaxSpeed(VITESSE_COUPE);
-     //   moteurDeplacementY1.setMaxSpeed(VITESSE_COUPE);
-    //    moteurDeplacementY2.setMaxSpeed(VITESSE_COUPE);
-     //   moteurRotationOutil.setMaxSpeed(VITESSE_COUPE);
-     //   moteurHauteurOutil.setMaxSpeed(VITESSE_COUPE);
-    //} else {
-      //  Serial.println("Commande ignorée (pas G00 ni G01) : " + command);
-    //}
     // Exécuter le mouvement en fonction du G-code
     moveXYZ(x, y, z, zRot);
+    delay(1000);
 }
 
-// ======================= Boutons ===================================
-void checkEmergencyReset() {
-    if (digitalRead(PIN_RESET_URGENCE) == LOW) {
-        emergencyStop = false;
-        Serial.println("Reset d’urgence effectué.");
+// ======================= Boutons Pi 5 ===================================
+void processSerialCommand(String input) {
+    input.trim();
+    if (input.length() == 0) return;
+
+    String cmd;
+    float stepValue = 1.0;  // Valeur par défaut
+
+    int spaceIndex = input.indexOf(' ');
+    if (spaceIndex != -1) {
+        cmd = input.substring(0, spaceIndex);
+        String stepStr = input.substring(spaceIndex + 1);
+        stepValue = stepStr.toFloat();
+        if (stepValue == 0.0) stepValue = 1.0;  // fallback
+    } else {
+        cmd = input;
     }
-}
 
-void handlePauseButton() {
-    isPaused = !isPaused;  // Toggle pause
-    Serial.println(isPaused ? "Pause activée" : "Reprise");
-}
+    // === Commandes système ===
+    if (cmd == "RESET") {
+        emergencyStop = false;
+        Serial.println("Reset d’urgence effectué (via série).");
+        return;
+    }
 
-void handleStartButton() {
-    isStarted = true;
-    Serial.println("Démarrage demandé");
+    if (cmd == "PAUSE") {
+        isPaused = !isPaused;
+        Serial.println(isPaused ? "Pause activée (via série)" : "Reprise (via série)");
+        return;
+    }
+
+    if (cmd == "START") {
+        isStarted = true;
+        Serial.println("Démarrage demandé (via série)");
+        return;
+    }
+
+    if (cmd == "STOP") {
+        isStarted = false;
+        Serial.println("Arrêt manuel de l'exécution du G-code.");
+        return;
+    }    
+
+    if (cmd == "HOME") {
+        Serial.println("Homing demandé (via série)");
+        homeAxes();
+        return;
+    }    
+
+    if (cmd == "UPLOAD") {
+        gcode_command.clear();
+        gcodeIndex = 0;
+        Serial.println("Prêt à recevoir le G-code. Envoyez 'END' pour terminer.");
+        while (true) {
+            while (!Serial.available()) delay(10);
+            String line = Serial.readStringUntil('\n');
+            line.trim();
+            if (line == "END") break;
+            if (line.length() > 0) {
+                gcode_command.push_back(line);
+            }
+        }
+        Serial.println("G-code reçu !");
+        return;
+    }
+
+    if (cmd == "RUN_GCODE") {
+        gcodeIndex = 0;
+        gcodeFinished = false;
+        isStarted = true;
+    
+        Serial.println("=== [RUN_GCODE] ===");
+        Serial.println("Exécution du G-code redémarrée (via série).");
+        Serial.println("Nombre de commandes : " + String(gcode_command.size()));
+        Serial.println("Index remis à zéro.");
+        Serial.println("====================");
+        return;
+    }
+
+    if (cmd == "STATUS") {
+        Serial.println("--- État du système ---");
+        Serial.println("emergencyStop: " + String(emergencyStop));
+        Serial.println("isPaused: " + String(isPaused));
+        Serial.println("isStarted: " + String(isStarted));
+        Serial.println("gcodeIndex: " + String(gcodeIndex));
+        Serial.println("gcodeSize: " + String(gcode_command.size()));
+        Serial.println("gcodeFinished: " + String(gcodeFinished));
+        
+        if (gcode_command.size() > 0) {
+            float percent = ((float)gcodeIndex / gcode_command.size()) * 100.0;
+            Serial.println("Progression G-code: " + String(percent, 1) + "%");
+        }
+    
+        Serial.println("Pos X: " + String(moteurDeplacementX.currentPosition()));
+        Serial.println("Pos Y1: " + String(moteurDeplacementY1.currentPosition()));
+        Serial.println("Pos Z: " + String(moteurHauteurOutil.currentPosition()));
+        Serial.println("ZRot: " + String(moteurRotationOutil.currentPosition()));
+        return;
+    }    
+
+    // === Commandes de mouvement ===
+    bool moved = false;
+
+    if (cmd == "X_LEFT") {
+        moteurDeplacementX.move(-PAS_PAR_MM_X * stepValue);
+        moved = true;
+    } else if (cmd == "X_RIGHT") {
+        moteurDeplacementX.move(PAS_PAR_MM_X * stepValue);
+        moved = true;
+    } else if (cmd == "Y_BACK") {
+        moteurDeplacementY1.move(-PAS_PAR_MM_Y * stepValue);
+        moteurDeplacementY2.move(-PAS_PAR_MM_Y * stepValue);
+        moved = true;
+    } else if (cmd == "Y_FORWARD") {
+        moteurDeplacementY1.move(PAS_PAR_MM_Y * stepValue);
+        moteurDeplacementY2.move(PAS_PAR_MM_Y * stepValue);
+        moved = true;
+    } else if (cmd == "Z_UP") {
+        moteurHauteurOutil.move(PAS_PAR_MM_Z * stepValue);
+        moved = true;
+    } else if (cmd == "Z_DOWN") {
+        moteurHauteurOutil.move(-PAS_PAR_MM_Z * stepValue);
+        moved = true;
+    } else if (cmd == "ZROT_LEFT") {
+        moteurRotationOutil.move(-PAS_PAR_DEGREE * stepValue);
+        moved = true;
+    } else if (cmd == "ZROT_RIGHT") {
+        moteurRotationOutil.move(PAS_PAR_DEGREE * stepValue);
+        moved = true;
+    } else if (cmd == "Z_ZERO") {
+        moteurHauteurOutil.setCurrentPosition(0);
+        Serial.println("Position Z enregistrée comme zéro.");
+        return;
+    } else {
+        Serial.println("Commande inconnue : " + cmd);
+        return;
+    }
+
+    if (moved) {
+        while (
+            moteurDeplacementX.distanceToGo() ||
+            moteurDeplacementY1.distanceToGo() ||
+            moteurDeplacementY2.distanceToGo() ||
+            moteurHauteurOutil.distanceToGo() ||
+            moteurRotationOutil.distanceToGo()
+        ) {
+            moteurDeplacementX.run();
+            moteurDeplacementY1.run();
+            moteurDeplacementY2.run();
+            moteurHauteurOutil.run();
+            moteurRotationOutil.run();
+            delay(1);
+        }
+        Serial.println("Déplacement effectué : " + cmd + " de " + String(stepValue));
+    }
 }
 
 // ======================= printLimitSwitchStates ====================
@@ -255,6 +337,38 @@ void printLimitSwitchStates() {
     if (digitalRead(LIMIT_Y_MAX_R) == LOW) Serial.println("Y Max R Switch Pressed!");
     if (digitalRead(LIMIT_Z_MAX) == LOW) Serial.println("Z Max Switch Pressed!");
     if (digitalRead(LIMIT_ZRot) == LOW) Serial.println("ZRot Switch Pressed!");
+}
+
+void checkLimitSwitches() {
+    // Arrêts d'urgence
+    if (digitalRead(LIMIT_X_MIN) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur X_MIN activé");
+    }
+    else if (digitalRead(LIMIT_X_MAX) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur X_MAX activé");
+    }
+    else if (digitalRead(LIMIT_Y_MIN_L) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur Y_MIN_L activé");
+    }
+    else if (digitalRead(LIMIT_Y_MIN_R) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur Y_MIN_R activé");
+    }
+    else if (digitalRead(LIMIT_Y_MAX_L) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur Y_MAX_L activé");
+    }
+    else if (digitalRead(LIMIT_Y_MAX_R) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur Y_MAX_R activé");
+    }
+    else if (digitalRead(LIMIT_Z_MAX) == LOW) {
+        emergencyStop = true;
+        Serial.println("Limiteur Z_MAX activé");
+    }
 }
 
 // ======================= Setup =======================
@@ -274,28 +388,6 @@ void setup() {
     pinMode(LIMIT_Y_MAX_R, INPUT_PULLUP);
     pinMode(LIMIT_Z_MAX, INPUT_PULLUP);
     pinMode(LIMIT_ZRot, INPUT_PULLUP);
-
-    // Boutons
-    Serial.println("Boutons configurés");
-    pinMode(PIN_RESET_URGENCE, INPUT_PULLUP);
-    pinMode(PIN_PAUSE, INPUT_PULLUP);
-    pinMode(PIN_START, INPUT_PULLUP);
-
-    /*
-    // Attacher les interruptions
-    Serial.println("Interruptions attachées");
-    attachInterrupt(digitalPinToInterrupt(LIMIT_X_MIN), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_X_MAX), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MIN_L), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MIN_R), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MAX_L), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_Y_MAX_R), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_Z_MAX), handleEmergencyStop, FALLING);
-    attachInterrupt(digitalPinToInterrupt(LIMIT_ZRot), handleEmergencyStop, FALLING);
-    Serial.println("Interruptions 2 attachées");
-    attachInterrupt(digitalPinToInterrupt(PIN_PAUSE), handlePauseButton, FALLING);
-    attachInterrupt(digitalPinToInterrupt(PIN_START), handleStartButton, FALLING);
-    */
 
     moteurDeplacementY2.setPinsInverted(true, false, false);
     Serial.println("Vitesse des moteurs réglée");
@@ -317,7 +409,7 @@ void setup() {
     multiStepper.addStepper(moteurHauteurOutil);
     multiStepper.addStepper(moteurRotationOutil);
 
-    homeAxes(); // Tu peux l’activer si tu veux faire un homing au départ
+    homeAxes();
 
     Serial.println("Fin du setup");
 }
@@ -327,11 +419,16 @@ void loop() {
 
     //printLimitSwitchStates();
 
+    moveXYZ(36,228,0,0);
+
+    if (Serial.available()) {
+        String incoming = Serial.readStringUntil('\n');
+        processSerialCommand(incoming);
+    }    
+
     if (!isStarted) {
-        Serial.println("En attente du démarrage...");
-        while (!isStarted) {
-            delay(100);
-        }
+        delay(100);
+        return;
     }
 
     // Vérifier si le tableau de commandes G-code contient des éléments
@@ -341,19 +438,21 @@ void loop() {
         Serial.println("Exécution : " + command);
         executeGCodeCommand(command);
     } 
-
+    
     else if (emergencyStop) {
         Serial.println("Système bloqué. Appuyez sur le bouton RESET.");
         while (emergencyStop) {
-            checkEmergencyReset();  // Autorise un déblocage manuel
             delay(100);
         }
     }
-
-    else {
+    
+    else if (!gcodeFinished) {
         Serial.println("Toutes les commandes G-code ont été exécutées.");
-        gcodeIndex = 0;
+        gcodeFinished = true;
+        // gcodeIndex = 0; ← tu peux le commenter si tu veux garder l'état pour relancer manuellement
     }
+
+    //checkLimitSwitches();
 
     yield();
 }
