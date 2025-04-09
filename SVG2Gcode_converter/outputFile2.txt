@@ -1,43 +1,27 @@
 ; Start of G-code generation
 ; Initialization
-
-; init
-G20          (pouces)
-G17          (plan xy)
-G90          (position absolue)
-G91.1        (le centre des arcs est relatif à la position de départ des arcs)
-G54          (système de coordonnées de travail)
-
-G1 Z0
+G1 X0.0000 Y0.0000 Z0 Zrot0.0000
 G0 X36.5658 Y228.5627 Z0 Zrot-90.0000
 
-G1 Z1
+G1 X36.5658 Y228.5627 Z1 Zrot-90.0000
 G1 X36.5658 Y253.5164 Z0 Zrot-90.0000
 
-G1 Z0
+G1 X36.5658 Y253.5164 Z0 Zrot-90.0000
 G0 X36.5658 Y253.5164 Z0 Zrot0.0000
 
-G1 Z1
+G1 X36.5658 Y253.5164 Z1 Zrot0.0000
 G1 X60.0370 Y253.5164 Z0 Zrot0.0000
 
-G1 Z0
+G1 X60.0370 Y253.5164 Z0 Zrot0.0000
 G0 X60.0370 Y253.5164 Z0 Zrot90.5787
 
-G1 Z1
+G1 X60.0370 Y253.5164 Z1 Zrot90.5787
 G1 X59.7900 Y229.0568 Z0 Zrot90.5787
 
-G1 Z0
+G1 X59.7900 Y229.0568 Z0 Zrot90.5787
 G0 X59.7900 Y229.0568 Z0 Zrot178.7811
 
-G1 Z1
+G1 X59.7900 Y229.0568 Z1 Zrot178.7811
 G1 X36.5658 Y228.5627 Z0 Zrot178.7811
 ; Fin de la découpe
 ; End of G-code generation
-
-; done
-G20
-G90
-
-G1 Z0
-G53 G0 X9 Y12
-M2

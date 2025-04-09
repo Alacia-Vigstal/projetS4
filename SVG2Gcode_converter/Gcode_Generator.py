@@ -242,7 +242,7 @@ class SVG:
         
         # Dans un SVG y est positif vers le bas, mais en Gcode c'est positif vers le haut
         if self.GcodeOrigin == self.GCODE_ORIGIN_IS_SVG_ORIGIN:
-            out = y * self.scaleY # essaie de modif pour régler le problème de frame (avant, -y)
+            out = y * self.scaleY
 
         elif self.GcodeOrigin == self.GCODE_ORIGIN_IS_VIEWBOX_LOWER_LEFT:
             out = (self.viewBoxHeight - (y - self.viewBoxY)) * self.scaleY
@@ -482,6 +482,12 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
 
     # tolérance pour déterminer si besoin de retrait lors de changements de direction
     ANGLE_TOLERANCE = 1.0
+    global currentX
+    currentX = 0.0
+    global currentY
+    currentY = 0.0
+    global currentZrot
+    currentZrot = 0.0
 
     def unitDirectionVector(segment):
         xStart, yStart = SVG.xy_mm(segment.start)
@@ -500,18 +506,21 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
         return math.degrees(math.acos(dot))
 
     # s'assure que l'outil est en position haute
-    g1(z = zRapid)
+    g1(x = currentX, y = currentY, z = zRapid, Zrot = currentZrot)
 
     # déplacement de l'outil vers la position de début de découpe
     start_x, start_y = SVG.xy_mm(path[0].start)
     startAngle = computeOrientation(path[0], t = 0.0)
     g0(x = start_x, y = start_y, Zrot = startAngle)
+    currentX = start_x
+    currentY = start_y
+    currentZrot = startAngle
 
     comment('')
     #comment("Début de la découpe simple avec retrait lors de changements de direction")
 
     # Descente de l'outil
-    g1(z = zCutDepth)
+    g1(x = currentX, y = currentY, z = zCutDepth, Zrot = currentZrot)
 
     prevDirection = unitDirectionVector(path[0])
 
@@ -544,7 +553,9 @@ currentX = None
 currentY = None
 # Z False veut dire up (pas en contact avec le tapis de découpe)
 currentZ = False
+currentZrot = None
 
+"""
 def init():
     print()
     print("; init")
@@ -554,6 +565,7 @@ def init():
     print("G91.1        (le centre des arcs est relatif à la position de départ des arcs)")
     print("G54          (système de coordonnées de travail)")
     print()
+"""
 
 def comment(msg):
     if msg:
@@ -562,6 +574,7 @@ def comment(msg):
     else:
         print()
 
+"""
 def absolute():
     print("G90")
 
@@ -570,19 +583,27 @@ def absoluteArcCenters():
 
 def relativeArcCenters():
     print("G91.1")
+"""
 
 def toolUp():
     comment('')
+    global currentX
+    global currentY
     global currentZ 
+    global currentZrot
     currentZ = False
-    g1(z = currentZ)
+    g1(x = currentX, y = currentY, z = currentZ, Zrot = currentZrot)
 
 def toolDown():
     comment('')
+    global currentX
+    global currentY
     global currentZ
+    global currentZrot
     currentZ = True
-    g1(z = currentZ)
+    g1(x = currentX, y = currentY, z = currentZ, Zrot = currentZrot)
 
+"""
 def presentationPosition():
     imperial()
     absolute()
@@ -597,18 +618,21 @@ def presentationPosition():
 def m2():
     print()
     print("M2")
+"""
 
 def done():
     print()
     print("; done")
-    presentationPosition()
+    #presentationPosition()
     print("M2")
 
+"""
 def imperial():
     print("G20")
 
 def metric():
     print("G21")
+"""
 
 def coordToStr(val=None):
     if val == None:
@@ -623,6 +647,7 @@ def g0(path = None, x = None, y = None, z = None, Zrot = None):
     global currentX
     global currentY
     global currentZ
+    global currentZrot
 
     if path is not None:
         print()
@@ -653,6 +678,7 @@ def g0(path = None, x = None, y = None, z = None, Zrot = None):
             print(" Z0", end='')
         
         if Zrot is not None:
+            currentZrot = Zrot
             print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
         
         print()
@@ -661,6 +687,7 @@ def g1(path = None, x = None, y = None, z = None, Zrot = None):
     global currentX
     global currentY
     global currentZ
+    global currentZrot
 
     if path is not None:
         print()
@@ -689,6 +716,7 @@ def g1(path = None, x = None, y = None, z = None, Zrot = None):
             print(" Z0", end='')
         
         if Zrot is not None:
+            currentZrot = Zrot
             print(" Zrot%s" % coordToStr(Zrot), end='') # vérifier que coordToStr fonctionne bien dans ce cas
 
         print()
@@ -697,6 +725,7 @@ def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
     global currentX
     global currentY
     global currentZ
+    global currentZrot
 
     if i is None and j is None:
         raise TypeError("gcoder.g2() without i or j")
@@ -729,16 +758,17 @@ def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
         print(" J%s" % coordToStr(j), end = '')
 
     if ZrotList is not None:
+        currentZrot = ZrotList
         ZrotStr = ",".join(str(coordToStr(angle)) for angle in ZrotList)
         print(" ZrotL:%s" % ZrotStr, end='')
 
     print()
 
-
 def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList = None):
     global currentX
     global currentY
     global currentZ
+    global currentZrot
 
     if i is None and j is None:
         raise TypeError("gcoder.g3() without i or j")
@@ -771,6 +801,7 @@ def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
         print(" J%s" % coordToStr(j), end = '')
 
     if ZrotList is not None:
+        currentZrot = ZrotList
         ZrotStr = ",".join(str(coordToStr(angle)) for angle in ZrotList)
         print(" ZrotL:%s" % ZrotStr, end='')
 
@@ -778,7 +809,7 @@ def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
 
 def okToRound(a, b):
     """
-    Est vrai si la différence entre `a` et `b` est moins que (1e-6) 
+    Est vrai si la différence entre a et b est moins que (1e-6) 
     Sinon, retourne faux.
     """
     

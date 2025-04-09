@@ -112,6 +112,7 @@ class pathResult(opResult):
         # Utilise la fonction de conversion du SVG vers G-code
         Gcode_Generator.path2Gcode(self.SVG, self.path, self.zRapid, self.zCutDepth)
 
+'''
 class OpInit(opResult):
     """
     Operation d'initialisation.
@@ -125,6 +126,7 @@ class OpDone(opResult):
     """
     def emit(self):
         Gcode_Generator.done()
+'''
 
 # fonctions
 def makeOpDict():
@@ -136,8 +138,6 @@ def makeOpDict():
         "g0": g0Result,
         "g1": g1Result,
         "path": pathResult,
-        "init": OpInit,
-        "done": OpDone
     }
 
 def followPath(SVG, path, zRapid = False, zCutDepth = True):
@@ -191,14 +191,14 @@ def handlePath(svgFilename):
     operations = []
     operations.append(opComment("Start of G-code generation"))
     operations.append(opComment("Initialization"))
-    operations.append(OpInit())
+    #operations.append(OpInit())
     
     # Pour chaque path, ajouter l'operation de suivi
     for path in paths:
         operations.append(followPath(svgObj, path))
     
     operations.append(opComment("End of G-code generation"))
-    operations.append(OpDone())
+    #operations.append(OpDone())
     
     return operations
 
