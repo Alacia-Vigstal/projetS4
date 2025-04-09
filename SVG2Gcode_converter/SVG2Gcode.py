@@ -102,7 +102,7 @@ class pathResult(opResult):
     """
     classe contenant un path a transformer en une sequence de commandes Gcode
     """
-    def __init__(self, SVG, path, zRapid=False, zCutDepth=True):
+    def __init__(self, SVG, path, zRapid = 10.0, zCutDepth = 0.0):
         self.SVG = SVG
         self.path = path
         self.zRapid = zRapid
@@ -140,7 +140,7 @@ def makeOpDict():
         "path": pathResult,
     }
 
-def followPath(SVG, path, zRapid = False, zCutDepth = True):
+def followPath(SVG, path, zRapid = 10.0, zCutDepth = 0.0):
     """
     Crée une operation de suivi de path.
     """

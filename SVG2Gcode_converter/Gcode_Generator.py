@@ -425,11 +425,13 @@ def handleIntersections(pathList):
     return paths
 
 def pathSegment2Gcode(SVG, segment):
+    global currentZ
+
     if type(segment) == svgpathtools.path.Line:
         (start_x, start_y) = SVG.xy_mm(segment.start)
         (end_x, end_y) = SVG.xy_mm(segment.end)
         angle = computeOrientation(segment, t = 1.0)  # Calcul de l'orientation en fin de segment
-        g1(x = end_x, y = end_y, Zrot = angle)
+        g1(x = end_x, y = end_y, z = currentZ, Zrot = angle)
         
     elif type(segment) is svgpathtools.path.Arc and (segment.radius.real == segment.radius.imag):
         (end_x, end_y) = SVG.xy_mm(segment.end)
@@ -440,10 +442,10 @@ def pathSegment2Gcode(SVG, segment):
         # Dans un SVG sweep == True -> clockwise et sweep == False -> counter-clockwise
         # Dans svgpathtools c'est l'inverse
         if segment.sweep:
-            g2(x = end_x, y = end_y, Zrot = startAngle, i = center_x, j = center_y, ZrotList = orientationList)
+            g2(x = end_x, y = end_y, z = currentZ, Zrot = startAngle, i = center_x, j = center_y, ZrotList = orientationList)
 
         else:
-            g3(x = end_x, y = end_y, Zrot = startAngle, i = center_x, j = center_y, ZrotList = orientationList)
+            g3(x = end_x, y = end_y, z = currentZ, Zrot = startAngle, i = center_x, j = center_y, ZrotList = orientationList)
 
     else:
         # Le segment n'es ni une ligne, ni un arc de cercle 
@@ -461,10 +463,10 @@ def pathSegment2Gcode(SVG, segment):
             else:
                 angle = computeOrientation(segment, t = t + 1e-5)
 
-            g1(x = end_x, y = end_y, Zrot = angle)
+            g1(x = end_x, y = end_y, z = currentZ, Zrot = angle)
 
 # Z0 veut dire up (pas en contact avec le tapis de découpe)
-def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
+def path2Gcode(SVG, path, zRapid = 10.0, zCutDepth = 0.0):
     """
     Output le Gcode pour les paths d'un SVG donné.
     Le Gcode est généré pour un cutter (pas de spindle) avec retrait entre les coupes pour les changements de direction
@@ -486,6 +488,8 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
     currentX = 0.0
     global currentY
     currentY = 0.0
+    global currentZ
+    currentZ = zRapid
     global currentZrot
     currentZrot = 0.0
 
@@ -506,21 +510,20 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
         return math.degrees(math.acos(dot))
 
     # s'assure que l'outil est en position haute
-    g1(x = currentX, y = currentY, z = zRapid, Zrot = currentZrot)
+    #g1(x = currentX, y = currentY, z = zRapid, Zrot = currentZrot)
 
     # déplacement de l'outil vers la position de début de découpe
     start_x, start_y = SVG.xy_mm(path[0].start)
     startAngle = computeOrientation(path[0], t = 0.0)
-    g0(x = start_x, y = start_y, Zrot = startAngle)
+    g0(x = start_x, y = start_y, z = zRapid, Zrot = startAngle)
     currentX = start_x
     currentY = start_y
     currentZrot = startAngle
 
-    comment('')
     #comment("Début de la découpe simple avec retrait lors de changements de direction")
 
     # Descente de l'outil
-    g1(x = currentX, y = currentY, z = zCutDepth, Zrot = currentZrot)
+    toolDown()
 
     prevDirection = unitDirectionVector(path[0])
 
@@ -539,7 +542,7 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
             toolUp()
             seg_x, seg_y = SVG.xy_mm(currentSegment.start)
             nextAngle = computeOrientation(currentSegment, t = 0.0)
-            g0(x = seg_x, y = seg_y, Zrot = nextAngle)
+            g0(x = seg_x, y = seg_y, z = currentZ, Zrot = nextAngle)
 
             toolDown()
 
@@ -552,7 +555,7 @@ def path2Gcode(SVG, path, zRapid = False, zCutDepth = True):
 currentX = None
 currentY = None
 # Z False veut dire up (pas en contact avec le tapis de découpe)
-currentZ = False
+currentZ = None
 currentZrot = None
 
 """
@@ -591,7 +594,7 @@ def toolUp():
     global currentY
     global currentZ 
     global currentZrot
-    currentZ = False
+    currentZ = 10.0
     g1(x = currentX, y = currentY, z = currentZ, Zrot = currentZrot)
 
 def toolDown():
@@ -600,7 +603,7 @@ def toolDown():
     global currentY
     global currentZ
     global currentZrot
-    currentZ = True
+    currentZ = 0.0
     g1(x = currentX, y = currentY, z = currentZ, Zrot = currentZrot)
 
 """
@@ -669,13 +672,9 @@ def g0(path = None, x = None, y = None, z = None, Zrot = None):
             currentY = y
             print(" Y%s" % coordToStr(y), end = '')
 
-        if z:
-            currentZ = True
-            print(" Z1", end='')
-        
-        if not z:
-            currentZ = False
-            print(" Z0", end='')
+        if z is not None:
+            currentZ = z
+            print(" Z%s" % coordToStr(z), end = '')
         
         if Zrot is not None:
             currentZrot = Zrot
@@ -707,13 +706,9 @@ def g1(path = None, x = None, y = None, z = None, Zrot = None):
             currentY = y
             print(" Y%s" % coordToStr(y), end = '')
         
-        if z:
-            currentZ = True
-            print(" Z1", end='')
-        
-        if not z:
-            currentZ = False
-            print(" Z0", end='')
+        if z is not None:
+            currentZ = z
+            print(" Z%s" % coordToStr(z), end = '')
         
         if Zrot is not None:
             currentZrot = Zrot
@@ -740,13 +735,9 @@ def g2(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
         currentY = y
         print(" Y%s" % coordToStr(y), end = '') 
     
-    if z:
-        currentZ = True
-        print(" Z1", end='')
-        
-    if not z:
-        currentZ = False
-        print(" Z0", end='')
+    if z is not None:
+        currentZ = z
+        print(" Z%s" % coordToStr(z), end = '')
     
     if Zrot is not None:
         print(" Zrot%s" % coordToStr(Zrot), end='')
@@ -783,13 +774,9 @@ def g3(x = None, y = None, z = None, Zrot = None, i = None, j = None, ZrotList =
         currentY = y
         print(" Y%s" % coordToStr(y), end = '')
     
-    if z:
-        currentZ = True
-        print(" Z1", end='')
-        
-    if not z:
-        currentZ = False
-        print(" Z0", end='')
+    if z is not None:
+        currentZ = z
+        print(" Z%s" % coordToStr(z), end = '')
     
     if Zrot is not None:
         print(" Zrot%s" % coordToStr(Zrot), end='')
