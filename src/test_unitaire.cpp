@@ -5,7 +5,7 @@
 #include <MultiStepper.h>
 #include <vector>
 #include <math.h>
-#include "data.hpp"
+//#include "data.hpp"
 
 // ======================= Booléens de contrôle global ====================
 volatile bool emergencyStop = false;
@@ -13,7 +13,7 @@ volatile bool isPaused = false;
 volatile bool isStarted = false;
 bool gcodeFinished = false;
 
-//std::vector<String> gcode_command = {};
+std::vector<String> gcode_command = {};
 int gcodeIndex = 0;
 
 // ======================= CONFIGURATION DES LIMIT SWITCH =================
@@ -249,17 +249,23 @@ void processSerialCommand(String input) {
     if (cmd == "UPLOAD") {
         gcode_command.clear();
         gcodeIndex = 0;
-        Serial.println("Prêt à recevoir le G-code. Envoyez 'END' pour terminer.");
+        Serial.println("READY_FOR_UPLOAD");  // <<< important pour synchronisation
+    
         while (true) {
             while (!Serial.available()) delay(10);
             String line = Serial.readStringUntil('\n');
             line.trim();
-            if (line == "END") break;
+    
+            if (line == "END") {
+                Serial.println("UPLOAD_COMPLETE");
+                break;
+            }
+    
             if (line.length() > 0) {
                 gcode_command.push_back(line);
+                Serial.println("OK");  // accuse réception (optionnel)
             }
         }
-        Serial.println("G-code reçu !");
         return;
     }
 
