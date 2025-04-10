@@ -32,10 +32,12 @@ int gcodeIndex = 0;
 // Fonction pour lire la valeur de la cellule de charge, retour en kg [0.9122, 10.65]
 float readLoadCell() {
     int potValue = analogRead(LOAD_CELL_PIN);
+    float poids = 0.9122 * exp(0.0006 * potValue);  // calibration exponentielle
     Serial.print("Raw ADC: "); Serial.print(potValue);
-    Serial.print(" | Converted: "); Serial.println(readLoadCell(), 3);
-    return(0.9122*exp(0.0006*potValue));
+    Serial.print(" | Converted: "); Serial.println(poids, 3);
+    return poids;
 }
+
 
 // ======================= CONFIGURATION DES MOTEURS =======================
 #define STEP_X  18
@@ -59,12 +61,12 @@ MultiStepper multiStepper;
 // ======================= CONFIGURATION DES PARAMETRES =======================
 #define PAS_PAR_MM_X   80
 #define PAS_PAR_MM_Y   80
-#define PAS_PAR_MM_Z   25
+#define PAS_PAR_MM_Z   400
 #define VITESSE_MAX    2000
-#define VITESSE_COUPE  1200
-#define VITESSE_HOME   1000
+#define VITESSE_COUPE  1500
+#define VITESSE_HOME   1500
 #define ACCELERATION   3000
-#define PAS_PAR_DEGREE 10
+#define PAS_PAR_DEGREE 17.777
 #define ERREUR_MAX_Y   10
 
 // ======================= MOUVEMENT DES MOTEURS =======================
@@ -116,55 +118,104 @@ void moveXYZ(float x, float y, float z, float zRot) {
 
 // ======================= HOMING FUNCTION ====================================
 void homeAxes() {
-    Serial.println("Homing X, Y, Z et ZRot...");
+        Serial.println("Homing X, Y, Z et ZRot...");
+    
+        const float OFFSET_HOMING_MM = 10.0;      // distance de recul en mm
+        const float OFFSET_HOMING_DEG = 10.0;     // pour ZRot
+    
+        // === HOMING X ===
+        moteurDeplacementX.setSpeed(-VITESSE_HOME);
+        while (digitalRead(LIMIT_X_MIN) != HIGH) {
+            moteurDeplacementX.runSpeed();
+            delayMicroseconds(100);
+        }
+        moteurDeplacementX.stop();
+        moteurDeplacementX.move(PAS_PAR_MM_X * OFFSET_HOMING_MM);  // reculer de 10mm
+        while (moteurDeplacementX.distanceToGo() != 0) moteurDeplacementX.run();
+        moteurDeplacementX.setCurrentPosition(0);
+        Serial.println("Homing X terminé");
+    
+        // === HOMING Y ===
+        moteurDeplacementY1.setSpeed(-VITESSE_HOME);
+        moteurDeplacementY2.setSpeed(-VITESSE_HOME);
+        while (digitalRead(LIMIT_Y_MAX_R) != HIGH) {
+            moteurDeplacementY1.runSpeed();
+            moteurDeplacementY2.runSpeed();
+            delayMicroseconds(100);
+        }
+        moteurDeplacementY1.stop();
+        moteurDeplacementY2.stop();
+        moteurDeplacementY1.move(PAS_PAR_MM_Y * OFFSET_HOMING_MM);
+        moteurDeplacementY2.move(PAS_PAR_MM_Y * OFFSET_HOMING_MM);
+        while (moteurDeplacementY1.distanceToGo() != 0 || moteurDeplacementY2.distanceToGo() != 0) {
+            moteurDeplacementY1.run();
+            moteurDeplacementY2.run();
+        }
+        moteurDeplacementY1.setCurrentPosition(0);
+        moteurDeplacementY2.setCurrentPosition(0);
+        Serial.println("Homing Y terminé");
 
-    // Move X towards MIN limit switch
-    moteurDeplacementX.setSpeed(-VITESSE_HOME);  // Move in negative direction
-    while (digitalRead(LIMIT_X_MIN) != HIGH) {
-        if (digitalRead(LIMIT_X_MIN) == HIGH) Serial.println("X Min Switch Pressed!");
-        moteurDeplacementX.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurDeplacementX.stop();  
-    moteurDeplacementX.setCurrentPosition(0);  // Set home position
-    Serial.println("Homing X");
+        // === HOMING Z avec Load Cell ===
+        Serial.println("Début du Homing Z via load cell...");
+        const float SEUIL_POIDS = 2;  // kg à atteindre pour définir Z = 0
+        const int MAX_ITER = 300;       // sécurité : éviter une boucle infinie
 
-    // Move Y towards MAX limit switch
-    moteurDeplacementY1.setSpeed(-VITESSE_HOME);  // Move in negative direction
-    moteurDeplacementY2.setSpeed(-VITESSE_HOME);
-    while (digitalRead(LIMIT_Y_MAX_R) != HIGH) {
-        if (digitalRead(LIMIT_Y_MAX_R) == HIGH) Serial.println("Y Max Switch Pressed!");
-        moteurDeplacementY1.runSpeed();
-        moteurDeplacementY2.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurDeplacementY1.stop(); 
-    moteurDeplacementY2.stop();  
-    moteurDeplacementY1.setCurrentPosition(0);
-    moteurDeplacementY2.setCurrentPosition(0);  // Set home position
-    Serial.println("Homing Y");
+        moteurHauteurOutil.setSpeed(VITESSE_HOME / 4);  // descente douce
+        int compteur = 0;
 
-    // Move Z towards MIN limit switch
-    moteurHauteurOutil.setSpeed(VITESSE_HOME);
-    while (digitalRead(LIMIT_Z_MAX) != HIGH) {
-        moteurHauteurOutil.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurHauteurOutil.stop();
-    //moteurHauteurOutil.setCurrentPosition(100*PAS_PAR_MM_Z);
-    Serial.println("Homing Z");
+        while (true) {
+            float poids = readLoadCell();
+            if (poids >= SEUIL_POIDS) {
+                Serial.println("Poids détecté! Z = 0");
+                break;
+            }
 
-    // Move ZRot towards MIN limit switch
-    moteurRotationOutil.setSpeed(-VITESSE_HOME);
-    while (digitalRead(LIMIT_ZRot) != HIGH) {
-        moteurRotationOutil.runSpeed();
-        delayMicroseconds(100); // Ajoute un petit délai
-    }
-    moteurRotationOutil.stop();
-    moteurRotationOutil.setCurrentPosition(0);
-    Serial.println("Homing ZRot");
+            moteurHauteurOutil.runSpeed();  // descendre
+            delay(5);
+    
+            compteur++;
+            if (compteur > MAX_ITER) {
+                Serial.println("⚠️ ERREUR: Aucune pression détectée, vérifie la cellule");
+                break;
+            }
+        }
 
-    Serial.println("Homing terminé !");
+        moteurHauteurOutil.stop();
+        moteurHauteurOutil.setCurrentPosition(0);  // Définir cette position comme Z = 0
+
+        // Optionnel : remonter de quelques mm après le contact
+        moteurHauteurOutil.move(PAS_PAR_MM_Z * 10);  // 10 mm
+        while (moteurHauteurOutil.distanceToGo() != 0) moteurHauteurOutil.run();
+
+        Serial.println("Homing Z terminé avec détection de la pression.");
+
+        // === HOMING Z ===
+        /*
+        moteurHauteurOutil.setSpeed(VITESSE_HOME);
+        while (digitalRead(LIMIT_Z_MAX) != HIGH) {
+            moteurHauteurOutil.runSpeed();
+            delayMicroseconds(100);
+        }
+        moteurHauteurOutil.stop();
+        moteurHauteurOutil.move(-PAS_PAR_MM_Z * OFFSET_HOMING_MM);  // descendre de 10mm
+        while (moteurHauteurOutil.distanceToGo() != 0) moteurHauteurOutil.run();
+        moteurHauteurOutil.setCurrentPosition(0);
+        Serial.println("Homing Z terminé");
+        */
+
+        // === HOMING ZRot ===
+        moteurRotationOutil.setSpeed(-VITESSE_HOME);
+        while (digitalRead(LIMIT_ZRot) != HIGH) {
+            moteurRotationOutil.runSpeed();
+            delayMicroseconds(100);
+        }
+        moteurRotationOutil.stop();
+        moteurRotationOutil.move(PAS_PAR_DEGREE * OFFSET_HOMING_DEG);  // rotation vers +10°
+        while (moteurRotationOutil.distanceToGo() != 0) moteurRotationOutil.run();
+        moteurRotationOutil.setCurrentPosition(0);
+        Serial.println("Homing ZRot terminé");
+
+        Serial.println("Homing terminé avec retrait et position zéro définie !");
 }
 
 // ======================= EXÉCUTION DU G-CODE =======================
@@ -229,6 +280,7 @@ void processSerialCommand(String input) {
     }
 
     if (cmd == "START") {
+        //homeAxes();
         isStarted = true;
         Serial.println("Démarrage demandé (via série)");
         return;
@@ -372,7 +424,7 @@ void printLimitSwitchStates() {
     if (digitalRead(LIMIT_Y_MAX_L) == HIGH) Serial.println("Y Max L Switch Pressed!");
     if (digitalRead(LIMIT_Y_MAX_R) == HIGH) Serial.println("Y Max R Switch Pressed!");
     if (digitalRead(LIMIT_Z_MAX) == HIGH) Serial.println("Z Max Switch Pressed!");
-    if (digitalRead(LIMIT_ZRot) == HIGH) Serial.println("ZRot Switch Pressed!");
+    //if (digitalRead(LIMIT_ZRot) == HIGH) Serial.println("ZRot Switch Pressed!");
 }
 
 void checkLimitSwitches() {
@@ -412,7 +464,7 @@ void checkLimitSwitches() {
 // ======================= Setup =======================
 void setup() {
     Serial.begin(115200);
-    Serial.flush();
+    //Serial.flush();
     delay(1000);  // Laisse le temps au port série de s'initialiser
     Serial.println("Début du setup");
 
@@ -447,7 +499,7 @@ void setup() {
     multiStepper.addStepper(moteurHauteurOutil);
     multiStepper.addStepper(moteurRotationOutil);
 
-    homeAxes();
+    //homeAxes();
 
     Serial.println("Fin du setup");
 }
@@ -479,20 +531,16 @@ void loop() {
             delay(100);
         }
     }
-    
+
     else if (!gcodeFinished) {
         Serial.println("Toutes les commandes G-code ont été exécutées.");
         gcodeFinished = true;
-        // gcodeIndex = 0; ← tu peux le commenter si tu veux garder l'état pour relancer manuellement
+        isStarted = false;
+        gcodeIndex = 0;
     }
+    
 
     checkLimitSwitches();
-
-    float poids = readLoadCell();
-    Serial.print("Poids détecté : ");
-    Serial.print(poids, 3);  // Affiche avec 3 décimales
-    Serial.println(" kg");
-    delay(500);  // Lis toutes les 500 ms
 
     yield();
 }
