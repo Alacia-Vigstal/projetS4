@@ -121,8 +121,35 @@ void homeAxes() {
         Serial.println("Homing X, Y, Z et ZRot...");
     
         const float OFFSET_HOMING_MM = 10.0;      // distance de recul en mm
-        const float OFFSET_HOMING_DEG = 10.0;     // pour ZRot
-    
+        const float OFFSET_HOMING_DEG = 45.0;     // pour ZRot
+
+        // === HOMING Z avec Load Cell ===
+        Serial.println("Début du Homing Z via load cell...");
+        const float SEUIL_POIDS = 1.25;  // kg à atteindre pour définir Z = 0
+        const int MAX_ITER = 300;       // sécurité : éviter une boucle infinie
+
+        moteurHauteurOutil.setSpeed(-VITESSE_HOME / 2);  // descente douce
+
+        while (true) {
+            float poids = readLoadCell();
+            if (poids >= SEUIL_POIDS) {
+                Serial.println("Poids détecté! Z = 0");
+                break;
+            }
+
+            moteurHauteurOutil.runSpeed();  // descendre
+            delay(5);
+        }
+
+        moteurHauteurOutil.stop();
+        moteurHauteurOutil.setCurrentPosition(0);  // Définir cette position comme Z = 0
+
+        // Optionnel : remonter de quelques mm après le contact
+        moteurHauteurOutil.move(PAS_PAR_MM_Z * 10);  // 10 mm
+        while (moteurHauteurOutil.distanceToGo() != 0) moteurHauteurOutil.run();
+
+        Serial.println("Homing Z terminé avec détection de la pression.");
+
         // === HOMING X ===
         moteurDeplacementX.setSpeed(-VITESSE_HOME);
         while (digitalRead(LIMIT_X_MIN) != HIGH) {
@@ -155,40 +182,6 @@ void homeAxes() {
         moteurDeplacementY2.setCurrentPosition(0);
         Serial.println("Homing Y terminé");
 
-        // === HOMING Z avec Load Cell ===
-        Serial.println("Début du Homing Z via load cell...");
-        const float SEUIL_POIDS = 2;  // kg à atteindre pour définir Z = 0
-        const int MAX_ITER = 300;       // sécurité : éviter une boucle infinie
-
-        moteurHauteurOutil.setSpeed(VITESSE_HOME / 4);  // descente douce
-        int compteur = 0;
-
-        while (true) {
-            float poids = readLoadCell();
-            if (poids >= SEUIL_POIDS) {
-                Serial.println("Poids détecté! Z = 0");
-                break;
-            }
-
-            moteurHauteurOutil.runSpeed();  // descendre
-            delay(5);
-    
-            compteur++;
-            if (compteur > MAX_ITER) {
-                Serial.println("⚠️ ERREUR: Aucune pression détectée, vérifie la cellule");
-                break;
-            }
-        }
-
-        moteurHauteurOutil.stop();
-        moteurHauteurOutil.setCurrentPosition(0);  // Définir cette position comme Z = 0
-
-        // Optionnel : remonter de quelques mm après le contact
-        moteurHauteurOutil.move(PAS_PAR_MM_Z * 10);  // 10 mm
-        while (moteurHauteurOutil.distanceToGo() != 0) moteurHauteurOutil.run();
-
-        Serial.println("Homing Z terminé avec détection de la pression.");
-
         // === HOMING Z ===
         /*
         moteurHauteurOutil.setSpeed(VITESSE_HOME);
@@ -204,14 +197,29 @@ void homeAxes() {
         */
 
         // === HOMING ZRot ===
+        Serial.println("Début du Homing ZRot...");
+
+        // Si le limit switch est déjà pressé, on recule un peu pour le désengager
+        if (digitalRead(LIMIT_ZRot) == HIGH) {
+            Serial.println("ZRot déjà appuyé → recul de sécurité");
+            moteurRotationOutil.move(PAS_PAR_DEGREE * 45);  // recule de 45°
+            while (moteurRotationOutil.distanceToGo() != 0) moteurRotationOutil.run();
+            delay(100);  // petite pause avant de recommencer le homing
+        }
+
+        // Phase de homing standard : avancer jusqu'au limit switch
         moteurRotationOutil.setSpeed(-VITESSE_HOME);
         while (digitalRead(LIMIT_ZRot) != HIGH) {
             moteurRotationOutil.runSpeed();
             delayMicroseconds(100);
         }
         moteurRotationOutil.stop();
-        moteurRotationOutil.move(PAS_PAR_DEGREE * OFFSET_HOMING_DEG);  // rotation vers +10°
+
+        // Recul de l’offset de sécurité
+        moteurRotationOutil.move(PAS_PAR_DEGREE * OFFSET_HOMING_DEG);
         while (moteurRotationOutil.distanceToGo() != 0) moteurRotationOutil.run();
+
+        // On définit cette position comme 0
         moteurRotationOutil.setCurrentPosition(0);
         Serial.println("Homing ZRot terminé");
 
@@ -245,7 +253,6 @@ void executeGCodeCommand(const String& command) {
     // Exécuter le mouvement en fonction du G-code
     moveXYZ(x, y, z, zRot);
     Serial.println("Fin du moveXYZ");
-    delay(1000);
 }
 
 // ======================= Boutons Pi 5 ===================================
