@@ -18,7 +18,7 @@ Pour cloner et exécuter le projet :
 1. Obtenir l'URL du repo
 2. Cloner le projet [voir CONTRIBUTING](CONTRIBUTING.md)
 3. Installation des dépendances [voir requis](requis.txt)
-4. Lancer le programme (voir le Wiki du projet plus bas)
+4. Lancer le programme [voir le Wiki du projet](https://github.com/Alacia-Vigstal/projetS4/wiki)
 
 ## Design mécanique
 - [Voir le projet CAD sur Onshape](https://cad.onshape.com/documents?column=modifiedAt&nodeId=9a43d1e489833251811f448e&resourceType=folder&sortOrder=desc)
