@@ -1,4 +1,5 @@
-# Découpeuse à lame rotative d'Alacia Vigstal (projet de session 4 en génie robotique promotion 69 à l'Université de Sherbrooke)
+# Découpeuse à lame rotative d'Alacia Vigstal
+# (projet de session 4 en génie robotique promotion 69 à l'Université de Sherbrooke)
 Brève description du projet, son objectif et son contexte (2-3 phrases).
 
 ## Contenu du dépôt
@@ -20,7 +21,6 @@ Pour cloner et exécuter le projet :
 4. Lancer le programme (voir le guide du projet plus bas)
 
 ## Design mécanique
-Lien vers le Onshape du projet :
 - [Voir le projet CAD sur Onshape](https://cad.onshape.com/documents?column=modifiedAt&nodeId=9a43d1e489833251811f448e&resourceType=folder&sortOrder=desc)
 
 ## Documentation détaillée (Wiki du projet)
@@ -36,12 +36,10 @@ Exemples de sections :
 - Exécution et dépannage
 
 ## Licences
-Détails sur les licences utilisées :
 - Code : MIT ou Apache 2.0 → [LICENSE_code](Licences/LICENSE_code.txt)
 - Fichiers CAD : CC-BY 4.0 → [LICENSE_cad](Licences/LICENSE_cad.txt)
 
 ## Ressources pour contributeurs
-Lien vers le fichier `CONTRIBUTING.md` :
 - [Guide de contribution](CONTRIBUTING.md)
 
 ## Auteur
