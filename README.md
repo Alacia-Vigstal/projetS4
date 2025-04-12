@@ -16,8 +16,8 @@ voici l'organisation des fichiers et dossiers du répo :
 ## Mise en route
 Pour cloner et exécuter le projet :
 1. Obtenir l'URL du repo
-2. Cloner le projet (voir `CONTRIBUTING.md`)
-3. Installation des dépendances (voir `requis.txt`)
+2. Cloner le projet [voir CONTRIBUTING](CONTRIBUTING.md)
+3. Installation des dépendances [voir requis](requis.txt)
 4. Lancer le programme (voir le guide du projet plus bas)
 
 ## Design mécanique
@@ -36,8 +36,8 @@ Exemples de sections :
 - Exécution et dépannage
 
 ## Licences
-- Code : MIT ou Apache 2.0 → [LICENSE_code](Licences/LICENSE_code.txt)
-- Fichiers CAD : CC-BY 4.0 → [LICENSE_cad](Licences/LICENSE_cad.txt)
+- [LICENSE_code](Licences/LICENSE_code.txt)
+- [LICENSE_cad](Licences/LICENSE_cad.txt)
 
 ## Ressources pour contributeurs
 - [Guide de contribution](CONTRIBUTING.md)
