@@ -83,3 +83,91 @@ Tips and tricks pour la gestion de GitHub.
     11. git push origin nom-de-la-branche-de-la-deuxième-personne
     12. sur GitHub régler la pull request, merge la branche et supprimer la branche une fois que tout est fait
     13. Reload GitHub et vérifier que le fichier est à jour (les modifications sont la)
+
+
+
+
+## Section du contrôle des moteur pas à pas : 
+
+# Contrôleur Robotisé 5 Axes avec ESP32
+
+Ce projet permet de contrôler un système robotisé 5 axes à l’aide d’un **ESP32**, 
+en exécutant des instructions **G-code** reçues via une connexion série (par exemple depuis un Raspberry Pi). 
+Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de tissus.
+
+---
+
+# Objectifs
+
+- Contrôler 5 moteurs pas à pas synchronisés (X, Y1, Y2, Z, ZRot)
+- Exécuter dynamiquement des fichiers G-code
+- Réaliser le homing de chaque axe, incluant la détection par cellule de charge pour le Z
+- Communiquer avec un Raspberry Pi via port série
+- Assurer la sécurité par arrêts d'urgence (limit switches)
+
+---
+
+# Matériel utilisé
+
+| Composant                    | Quantité | Remarques                       |
+|------------------------------|----------|---------------------------------|
+| ESP32                        | 1        | Contrôleur principal            |
+| Moteurs pas à pas NEMA 17    | 5        | Un pour chaque axe              |
+| Drivers TMC2209 / A4988      | 5        | Avec contrôle STEP/DIR          |
+| Fins de course               | 8        | X, Y (gauche/droite), Z, ZRot   |
+| Cellule de charge            | 1        | Homing Z par détection de poids |
+| Raspberry Pi                 | 1        | Pour l’envoi des G-code         |
+
+---
+
+# Fonctionnalités principales
+
+**Interprétation du G-code** (`G00`, `G01`, `X`, `Y`, `Z`, `ZRot`)
+**Homing automatique** complet (avec recul de sécurité et calibration)
+**Interface série** pour chargement du G-code et commandes en direct
+**Sécurité intégrée** via fins de course et état d’urgence
+**Pause, redémarrage et suivi de progression** du G-code
+
+---
+
+# Commandes série disponibles
+
+| Commande     | Description                                  |
+|--------------|----------------------------------------------|
+| `UPLOAD`     | Envoie d’un nouveau G-code (ligne par ligne) |
+| `RUN_GCODE`  | Démarre l’exécution après homing             |
+| `START`      | Lancement manuel sans homing                 |
+| `PAUSE`      | Met le système en pause ou le relance        |
+| `STOP`       | Arrête l’exécution en cours                  |
+| `RESET`      | Réinitialise l’état d’urgence                |
+| `HOME`       | Lance le homing complet                      |
+| `STATUS`     | Affiche les états actuels et progression     |
+
+---
+
+# Structure du code
+
+- `setup()` : Initialisation des moteurs, MultiStepper, entrées digitales
+- `loop()` : Lecture série, exécution du G-code, gestion des états
+- `moveXYZ()` : Mouvement coordonné sur les 5 axes
+- `homeAxes()` : Homing complet avec détection de pression pour Z
+- `processSerialCommand()` : Traitement des commandes envoyées par le Pi
+- `executeGCodeCommand()` : Décodage et exécution d’une ligne G-code
+
+
+## Installation et configuration (VS Code + PlatformIO)
+
+Ce projet est conçu pour être utilisé avec **Visual Studio Code** et l’extension **PlatformIO**, idéale pour le développement sur microcontrôleurs comme l’ESP32.
+
+---
+
+# Installer les prérequis
+
+- [✅] [Visual Studio Code](https://code.visualstudio.com/)
+- [✅] [PlatformIO IDE](https://platformio.org/install/ide?install=vscode) (disponible via les extensions VS Code)
+
+---
+
+
+## Schéma électrique de la découpeuse de tissus :
+![alt text](image-1.png)

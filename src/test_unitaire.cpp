@@ -1,5 +1,5 @@
 // Système robotique ESP32 pour exécution de G-code.
-// Auteur: Alexandre Tanguay
+// Responsable code contrôle moteur : Alexandre Tanguay
 // Description: Ce code contrôle 4 axes robotique avec 5 moteurs pas à pas NEMA17 avec un ESP32.
 // Il interprête des commande G-code, gère le retour à l'origine (Home) et assure la sécurité de la machine avec des arrêts d'urgence
 // Ce système supporte aussi une communication série avec un Raspberry Pi pour télécharger et exécuter le G-code.
