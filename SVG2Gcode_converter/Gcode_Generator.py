@@ -1,4 +1,8 @@
-# Programme ecrivant du Gcode (la librairie)
+"""
+Librairie permettant la conversion de path SVG en commandes g-code.
+Responsable code librairie: Charles-William Lambert
+Description: 
+"""
 
 # imports
 import math

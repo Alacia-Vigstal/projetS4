@@ -1,4 +1,8 @@
-# Programme lisant les paths d'un SVG et produisant les commandes Gcode correspondantes (appelle la librairie)
+"""
+Script pour la conversion d'un fichier SVG en fichier texte de commandes g-code.
+Responsable code conversion de fichiers SVG: Charles-William Lambert
+Description: 
+"""
 
 # imports
 import argparse

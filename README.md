@@ -1,85 +1,50 @@
-Bienvenue dans le repo du projet! 
-   - Pour cloner le projet et travailler localement:
-   
-    1. copier l'URL du repo (via github)
-    2. ouvrir un terminal ou command prompt
-    3. naviguer jusqu'au folder ou vous voulez avoir les fichiers de code du 
-       projet (dans le terminal, cd "le nom du folder" pour rentrer dedans)
-    4. une fois dans le bon folder, utiliser la commande git clone avec l'URL
-    5. ouvrir le folder dans vscode
-    6. pour ajouter du code, modifier du code: 
-       créer une nouvelle branche, une pull request, puis merge la pull request dans la branche principale
+# Découpeuse à lame rotative d'Alacia Vigstal (projet de session 4 en génie robotique promotion 69 à l'Université de Sherbrooke)
+Brève description du projet, son objectif et son contexte (2-3 phrases).
 
-source: https://www.youtube.com/watch?v=eLmpKKaQL54&t=151s
+## Contenu du dépôt
+voici l'organisation des fichiers et dossiers du répo :
+- `/.pio` :
+- `/.vscode` : 
+- `/Licences` : licences open-source du projet
+- `/src` : Code source
+- `/SVG2Gcode_converter` : Librairie et script pour conversion de fichier SVG
+- `UI/` : Interface utilisateur
+- `/docs` : Documentation détaillée
+- `.gitignore`, `CONTRIBUTING.md`, `LICENSES.txt`, `platformio.ini`, `README.md`, `requis.txt`
 
-Le github est maintenant connecté au jira!
+## Mise en route
+Pour cloner et exécuter le projet :
+1. Obtenir l'URL du repo
+2. Cloner le projet (voir `CONTRIBUTING.md`)
+3. Installation des dépendances (voir `requis.txt`)
+4. Lancer le programme (voir le guide du projet plus bas)
 
-   - Lorsqu'une branche est prête à être merged, il faut référencer le code de 
-     l'issue jira pour que le merge soit reconnu par jira:
-   
-    1. trouver le key issue pour la tâche (issue) concernée (ex JRA-123)
-    2. utiliser la clée dans le nom de la branche lors de la création
-       (ex JRA-123-branchName)
-    3. utiliser la clée au début du commit message au moment de commit les 
-       changements dans la branche (ex JRA-123 résumé des changements)
-    4. au moment de créer une pull request dans github, utiliser la clée dans
-       le titre de la pull request
+## Design mécanique
+Lien vers le Onshape du projet :
+- [Voir le projet CAD sur Onshape](https://cad.onshape.com/documents?column=modifiedAt&nodeId=9a43d1e489833251811f448e&resourceType=folder&sortOrder=desc)
 
+## Documentation détaillée (Wiki du projet)
+Tu veux reproduire le projet étape par étape?
 
-Tips and tricks pour la gestion de GitHub.
-   - Quand 2 personnes travaillent sur le même fichier de code:
+➡️ Consulte le [Wiki du projet](https://github.com/TON_UTILISATEUR/TON_REPO/wiki) pour accéder à la documentation complète au format *tutoriel interactif*.
 
-    1. chaque personne doit créer sa propre branche avant de commencer.
-    2. ouvrir un terminal
-    3. cd jusqu'à l'emplacement du folder de projetS4
-    4. git branch (devrait montrer uniquement main)
-       #si pas uniquement main: 
-       #git checkout main
-       #git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
-    5. git pull origin main
-    6. ouvrir vscode
-    7. créer une branche
+Exemples de sections :
+- Matériel requis
+- Montage mécanique
+- Connexions électroniques
+- Installation logicielle
+- Exécution et dépannage
 
-   - La première personne qui termine peut faire comme d'habitude. Elle doit aussi avertir l'autre:
-   
-    1. dans vscode stage les changements (le symbole +)
-    2. dans vscode écrire un commit message puis commit (la checkmark)
-    3. dans vscode publier la branche (..., branch, publish branch)
-    4. sur GitHub régler la pull request, merge la branche et supprimer la branche une fois que tout est fait
-    5. ouvrir un terminal
-    6. cd jusqu'au folder projetS4
-    7. git checkout main
-    8. git pull origin main
-    9. git branch
-       #si pas uniquement main: 
-       #git checkout main
-       #git branch -d Nom-de-la-branche-à-supprimer (répéter pour les branches qui ne sont pas main)
+## Licences
+Détails sur les licences utilisées :
+- Code : MIT ou Apache 2.0 → [LICENSE_code](Licences/LICENSE_code.txt)
+- Fichiers CAD : CC-BY 4.0 → [LICENSE_cad](Licences/LICENSE_cad.txt)
 
-   - La deuxième personne qui finit doit suivre les étapes suivantes:
+## Ressources pour contributeurs
+Lien vers le fichier `CONTRIBUTING.md` :
+- [Guide de contribution](CONTRIBUTING.md)
 
-    1. ouvrir un terminal
-    2. cd jusqu'au folder projetS4
-    3. git status
-       #si il y a des fichiers pas commit, il faut les commit
-       #git add .
-       #git commit -m 'ton commit message'
-    4. git fetch origin
-    5. git checkout main
-    6. git pull origin main
-    7. git checkout nom-de-la-branche-de-la-deuxième-personne
-    8. git merge main
-       #il se peut qu'il y aie des conflits, il faut les résoudre manuellement
-       #un conflit apparait dans le code comme suit:
-       #<<<<<<< HEAD
-       #[Code de la branche principale]
-       #=======
-       #[Code de la branche de la deuxième personne]
-       #>>>>>>> nom-de-la-branche-de-la-deuxième-personne
-       #il faut choisir manuellement quoi conserver ou non dans le code des deux branches.
-       #un fois que c'est fait, supprimer <<<<<<< HEAD, =======, >>>>>>> nom-de-la-branche-de-la-deuxième-personne
-       #vérifier pour des erreures et que toutes les modifications sont la
-    9. git add .
-    10. git commit -m 'conflit résolu'
-    11. git push origin nom-de-la-branche-de-la-deuxième-personne
-    12. sur GitHub régler la pull request, merge la branche et supprimer la branche une fois que tout est fait
-    13. Reload GitHub et vérifier que le fichier est à jour (les modifications sont la)
+## Auteur
+Charles-William Lambert, génie robotique, Université de Sherbrooke, contact: charles-william.lambert@usherbrooke.ca.
+
+> *Ce projet a été réalisé dans le cadre d’un cours universitaire et est partagé à des fins éducatives.*

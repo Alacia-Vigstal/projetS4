@@ -1,11 +1,14 @@
+// Système robotique ESP32 pour exécution de G-code.
+// Responsable code contrôle moteur : Alexandre Tanguay
+// Description: Ce code contrôle 4 axes robotique avec 5 moteurs pas à pas NEMA17 avec un ESP32.
+// Il interprête des commande G-code, gère le retour à l'origine (Home) et assure la sécurité de la machine avec des arrêts d'urgence
+// Ce système supporte aussi une communication série avec un Raspberry Pi pour télécharger et exécuter le G-code.
+
 #include <Arduino.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <vector>
 #include <math.h>
-//#include "data.hpp"
 
 // ======================= Booléens de contrôle global ====================
 volatile bool emergencyStop = false;
@@ -24,7 +27,7 @@ int gcodeIndex = 0;
 #define LIMIT_Y_MAX_L  25
 #define LIMIT_Y_MAX_R  14
 #define LIMIT_Z_MAX    13
-#define LIMIT_ZRot     17
+#define LIMIT_ZRot     5
 
 // ======================= Load Cell ======================================
 #define LOAD_CELL_PIN  12
@@ -66,7 +69,7 @@ MultiStepper multiStepper;
 #define VITESSE_COUPE  1500
 #define VITESSE_HOME   1500
 #define ACCELERATION   3000
-#define PAS_PAR_DEGREE 17.777
+#define PAS_PAR_DEGREE 16*200*2/360  // 16 pas par 1.8deg, 200 pas par tour, 2 tours pour 360°
 #define ERREUR_MAX_Y   10
 
 // ======================= MOUVEMENT DES MOTEURS =======================
@@ -121,7 +124,7 @@ void homeAxes() {
         Serial.println("Homing X, Y, Z et ZRot...");
     
         const float OFFSET_HOMING_MM = 10.0;      // distance de recul en mm
-        const float OFFSET_HOMING_DEG = 45.0;     // pour ZRot
+        const float OFFSET_HOMING_DEG = 35 + 90 + 3.0;     // pour ZRot
 
         // === HOMING Z avec Load Cell ===
         Serial.println("Début du Homing Z via load cell...");
@@ -145,7 +148,7 @@ void homeAxes() {
         moteurHauteurOutil.setCurrentPosition(0);  // Définir cette position comme Z = 0
 
         // Optionnel : remonter de quelques mm après le contact
-        moteurHauteurOutil.move(PAS_PAR_MM_Z * 10);  // 10 mm
+        moteurHauteurOutil.move(PAS_PAR_MM_Z * 5);  // 10 mm
         while (moteurHauteurOutil.distanceToGo() != 0) moteurHauteurOutil.run();
 
         Serial.println("Homing Z terminé avec détection de la pression.");
@@ -181,20 +184,6 @@ void homeAxes() {
         moteurDeplacementY1.setCurrentPosition(0);
         moteurDeplacementY2.setCurrentPosition(0);
         Serial.println("Homing Y terminé");
-
-        // === HOMING Z ===
-        /*
-        moteurHauteurOutil.setSpeed(VITESSE_HOME);
-        while (digitalRead(LIMIT_Z_MAX) != HIGH) {
-            moteurHauteurOutil.runSpeed();
-            delayMicroseconds(100);
-        }
-        moteurHauteurOutil.stop();
-        moteurHauteurOutil.move(-PAS_PAR_MM_Z * OFFSET_HOMING_MM);  // descendre de 10mm
-        while (moteurHauteurOutil.distanceToGo() != 0) moteurHauteurOutil.run();
-        moteurHauteurOutil.setCurrentPosition(0);
-        Serial.println("Homing Z terminé");
-        */
 
         // === HOMING ZRot ===
         Serial.println("Début du Homing ZRot...");
@@ -471,20 +460,19 @@ void checkLimitSwitches() {
 // ======================= Setup =======================
 void setup() {
     Serial.begin(115200);
-    //Serial.flush();
     delay(1000);  // Laisse le temps au port série de s'initialiser
     Serial.println("Début du setup");
 
     // Set limit switches as inputs with pull-up resistors
     Serial.println("Pins des limiteurs configurés");
-    pinMode(LIMIT_X_MIN, INPUT_PULLUP);
-    pinMode(LIMIT_X_MAX, INPUT_PULLUP);
-    pinMode(LIMIT_Y_MIN_L, INPUT_PULLUP);
-    pinMode(LIMIT_Y_MIN_R, INPUT_PULLUP);
-    pinMode(LIMIT_Y_MAX_L, INPUT_PULLUP);
-    pinMode(LIMIT_Y_MAX_R, INPUT_PULLUP);
-    pinMode(LIMIT_Z_MAX, INPUT_PULLUP);
-    pinMode(LIMIT_ZRot, INPUT_PULLUP);
+    pinMode(LIMIT_X_MIN, INPUT_PULLDOWN);
+    pinMode(LIMIT_X_MAX, INPUT_PULLDOWN);
+    pinMode(LIMIT_Y_MIN_L, INPUT_PULLDOWN);
+    pinMode(LIMIT_Y_MIN_R, INPUT_PULLDOWN);
+    pinMode(LIMIT_Y_MAX_L, INPUT_PULLDOWN);
+    pinMode(LIMIT_Y_MAX_R, INPUT_PULLDOWN);
+    pinMode(LIMIT_Z_MAX, INPUT_PULLDOWN);
+    pinMode(LIMIT_ZRot, INPUT_PULLDOWN);
 
     moteurDeplacementY2.setPinsInverted(true, false, false);
     Serial.println("Vitesse des moteurs réglée");
@@ -505,8 +493,6 @@ void setup() {
     multiStepper.addStepper(moteurDeplacementY2);
     multiStepper.addStepper(moteurHauteurOutil);
     multiStepper.addStepper(moteurRotationOutil);
-
-    //homeAxes();
 
     Serial.println("Fin du setup");
 }

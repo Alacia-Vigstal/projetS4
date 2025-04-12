@@ -1,3 +1,9 @@
+"""
+Interface utilisateur pour le Raspberry Pi.
+Responsable code UI : Alexis Vegiard
+Description: Code de l'inerface graphique permettant de contrôler le robot 3 axes.
+"""
+
 import PySimpleGUI as sg
 import os
 import math
