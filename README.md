@@ -26,14 +26,7 @@ Pour cloner et exécuter le projet :
 ## Documentation détaillée (Wiki du projet)
 Tu veux reproduire le projet étape par étape?
 
-➡️ Consulte le [Wiki du projet](https://github.com/TON_UTILISATEUR/TON_REPO/wiki) pour accéder à la documentation complète
-
-Exemples de sections :
-- Matériel requis
-- Montage mécanique
-- Connexions électroniques
-- Installation logicielle
-- Exécution et dépannage
+➡️ Consulte le [Wiki du projet](https://github.com/Alacia-Vigstal/projetS4/wiki) pour accéder à la documentation complète
 
 ## Licences
 - [LICENSE_code](Licences/LICENSE_code.txt)
