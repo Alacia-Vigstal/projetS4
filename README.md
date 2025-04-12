@@ -170,4 +170,6 @@ Ce projet est conçu pour être utilisé avec **Visual Studio Code** et l’exte
 
 
 # Schéma électrique de la découpeuse de tissus :
+- [Draw.io] (https://drive.google.com/file/d/1QYXYx29nGplzQALVM32Cq2zheQ252X-5/view?usp=sharing)
+
 ![alt text](image-1.png)
