@@ -26,7 +26,7 @@ Pour cloner et exécuter le projet :
 ## Documentation détaillée (Wiki du projet)
 Tu veux reproduire le projet étape par étape?
 
-➡️ Consulte le [Wiki du projet](https://github.com/TON_UTILISATEUR/TON_REPO/wiki) pour accéder à la documentation complète au format *tutoriel interactif*.
+➡️ Consulte le [Wiki du projet](https://github.com/TON_UTILISATEUR/TON_REPO/wiki) pour accéder à la documentation complète
 
 Exemples de sections :
 - Matériel requis
