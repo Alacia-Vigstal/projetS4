@@ -87,9 +87,9 @@ Tips and tricks pour la gestion de GitHub.
 
 
 
-## Section du contrôle des moteur pas à pas : 
+# Section du contrôle des moteurs pas à pas : 
 
-# Contrôleur Robotisé 5 Axes avec ESP32
+## Contrôleur Robotisé 5 Axes avec ESP32
 
 Ce projet permet de contrôler un système robotisé 5 axes à l’aide d’un **ESP32**, 
 en exécutant des instructions **G-code** reçues via une connexion série (par exemple depuis un Raspberry Pi). 
@@ -97,7 +97,7 @@ Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de
 
 ---
 
-# Objectifs
+## Objectifs
 
 - Contrôler 5 moteurs pas à pas synchronisés (X, Y1, Y2, Z, ZRot)
 - Exécuter dynamiquement des fichiers G-code
@@ -107,7 +107,7 @@ Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de
 
 ---
 
-# Matériel utilisé
+## Matériel utilisé
 
 | Composant                    | Quantité | Remarques                       |
 |------------------------------|----------|---------------------------------|
@@ -120,7 +120,7 @@ Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de
 
 ---
 
-# Fonctionnalités principales
+## Fonctionnalités principales
 
 **Interprétation du G-code** (`G00`, `G01`, `X`, `Y`, `Z`, `ZRot`)
 **Homing automatique** complet (avec recul de sécurité et calibration)
@@ -130,7 +130,7 @@ Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de
 
 ---
 
-# Commandes série disponibles
+## Commandes série disponibles
 
 | Commande     | Description                                  |
 |--------------|----------------------------------------------|
@@ -145,7 +145,7 @@ Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de
 
 ---
 
-# Structure du code
+## Structure du code
 
 - `setup()` : Initialisation des moteurs, MultiStepper, entrées digitales
 - `loop()` : Lecture série, exécution du G-code, gestion des états
@@ -155,13 +155,13 @@ Il est idéal pour l’automatisation de tâches de type CNC pour la découpe de
 - `executeGCodeCommand()` : Décodage et exécution d’une ligne G-code
 
 
-## Installation et configuration (VS Code + PlatformIO)
+# Installation et configuration (VS Code + PlatformIO)
 
 Ce projet est conçu pour être utilisé avec **Visual Studio Code** et l’extension **PlatformIO**, idéale pour le développement sur microcontrôleurs comme l’ESP32.
 
 ---
 
-# Installer les prérequis
+## Installer les prérequis
 
 - [✅] [Visual Studio Code](https://code.visualstudio.com/)
 - [✅] [PlatformIO IDE](https://platformio.org/install/ide?install=vscode) (disponible via les extensions VS Code)
@@ -169,5 +169,5 @@ Ce projet est conçu pour être utilisé avec **Visual Studio Code** et l’exte
 ---
 
 
-## Schéma électrique de la découpeuse de tissus :
+# Schéma électrique de la découpeuse de tissus :
 ![alt text](image-1.png)
