@@ -441,7 +441,7 @@ def pathSegment2Gcode(SVG, segment):
         (end_x, end_y) = SVG.xy_mm(segment.end)
         (center_x, center_y) = SVG.xy_mm(segment.center)
         startAngle = computeOrientation(segment, t = 0.0)  # Orientation au début de l'arc
-        orientationList = computeOrientationList(segment, steps = 500)
+        orientationList = computeOrientationList(segment, steps = 10)
 
         # Dans un SVG sweep == True -> clockwise et sweep == False -> counter-clockwise
         # Dans svgpathtools c'est l'inverse
@@ -455,7 +455,7 @@ def pathSegment2Gcode(SVG, segment):
         # Le segment n'es ni une ligne, ni un arc de cercle 
         # c'est donc arc elliptique ou une courbe de bezier
         # on utilise une approximation linéaire (ajuster le nombre de points au besoin)
-        steps = 500
+        steps = 10
 
         for k in range(steps + 1):
             t = k / float(steps)
@@ -470,7 +470,7 @@ def pathSegment2Gcode(SVG, segment):
             g1(x = end_x, y = end_y, z = currentZ, Zrot = angle)
 
 # Z0 veut dire up (pas en contact avec le tapis de découpe)
-def path2Gcode(SVG, path, zRapid = 10.0, zCutDepth = 0.0):
+def path2Gcode(SVG, path, zRapid = 3.0, zCutDepth = 0.0):
     """
     Output le Gcode pour les paths d'un SVG donné.
     Le Gcode est généré pour un cutter (pas de spindle) avec retrait entre les coupes pour les changements de direction
@@ -598,7 +598,7 @@ def toolUp():
     global currentY
     global currentZ 
     global currentZrot
-    currentZ = 10.0
+    currentZ = 3.0
     g1(x = currentX, y = currentY, z = currentZ, Zrot = currentZrot)
 
 def toolDown():
@@ -815,7 +815,7 @@ def computeOrientation(segment, t = 1.0):
 
     return angle
 
-def computeOrientationList(segment, steps = 500):
+def computeOrientationList(segment, steps = 10):
     """
     Retourne une liste d'angles (en degrés) pour le segment à des positions t allant de 0 à 1.
     """
